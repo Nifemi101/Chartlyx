@@ -135,11 +135,15 @@ This IS the library. Everything we've built lives here.
     │   │   ├── Tooltip.tsx
     │   │   ├── useHoverState.ts
     │   │   └── types.ts
-    │   ├── PolarChartContainer.tsx    <-- NEW in Phase 6
-    │   ├── polar/            <-- NEW in Phase 6 (all non-Cartesian)
+    │   ├── PolarChartContainer.tsx    <-- Phase 6 (extended 7)
+    │   ├── polar/            <-- Phase 6 (all non-Cartesian)
     │   │   ├── context.ts
     │   │   ├── Pie.tsx
     │   │   ├── PolarTooltip.tsx
+    │   │   ├── Radar.tsx              <-- NEW in Phase 7
+    │   │   ├── RadarGrid.tsx          <-- NEW in Phase 7
+    │   │   ├── RadarAxes.tsx          <-- NEW in Phase 7
+    │   │   ├── radarScales.ts         <-- NEW in Phase 7
     │   │   └── types.ts
     │   └── __tests__/
     │       ├── useChartScales.test.ts
@@ -151,8 +155,11 @@ This IS the library. Everything we've built lives here.
     │       ├── Scatter.test.tsx     <-- Phase 5c
     │       ├── StackedBar.test.tsx  <-- Phase 5e
     │       ├── StackedArea.test.tsx <-- Phase 5e
-    │       ├── Pie.test.tsx                <-- NEW in Phase 6
-    │       ├── PolarChartContainer.test.tsx <-- NEW in Phase 6
+    │       ├── Pie.test.tsx                <-- Phase 6
+    │       ├── PolarChartContainer.test.tsx <-- Phase 6
+    │       ├── Radar.test.tsx              <-- NEW in Phase 7
+    │       ├── RadarGridAxes.test.tsx      <-- NEW in Phase 7
+    │       ├── radarScales.test.ts         <-- NEW in Phase 7
     │       ├── setup.ts             <-- Phase 3: RTL / jest-dom / ResizeObserver stub
     │       └── testUtils.tsx        <-- Phase 3: mock ChartContext helper
     ├── playground/           <-- NEW in Phase 3 (dev-only, NOT published)
@@ -1668,6 +1675,168 @@ container.
 
 
 ------------------------------------------------------------
+4i. PHASE 7 — WHAT WE ACTUALLY DID (RADAR)
+------------------------------------------------------------
+
+Final chart type in the roadmap. Radar shows a single row across
+multiple numeric dimensions — think of a video-game character's
+skill profile (speed / power / defense / magic / agility). Each
+dimension gets its own axis radiating from a shared center. The
+row's values are plotted as distances along their respective
+axes and connected into a closed polygon. Two or more rows can
+overlay on the same axes for comparison.
+
+Radar reuses `<PolarChartContainer>` from Phase 6. That was the
+whole reason we separated polar into its own container: the pie
+and radar share a coordinate system (center + radius), the
+plumbing that makes it responsive (ResizeObserver), and the
+tooltip infrastructure (activeIndex hover state). All of that
+came for free this phase.
+
+--- What's genuinely new in Phase 7 ---------------------------
+
+Radar's DATA MODEL differs from pie's. Pie takes one number per
+row — the slice size. Radar takes N numbers per row — one per
+axis. So Radar owns its own scale math instead of borrowing the
+container's `valueAccessor`.
+
+Two tiny math functions carry all of it:
+
+    axisAngle(i, N) = -π/2 + (2π · i) / N
+      → angle of the i-th axis. Starts at 12 o'clock (-π/2)
+        and steps clockwise around the circle.
+
+    polarPoint(angle, value, maxValue, radius)
+      → (x, y) offset from center. r = (value/maxValue) * radius,
+        then (x, y) = (r·cos(angle), r·sin(angle)).
+
+Both live in `polar/radarScales.ts`, separate from the components,
+so we can unit-test them without needing to render anything.
+
+--- Small container extension ---------------------------------
+
+Phase 6's `<PolarChartContainer>` required `valueKey` or `value`
+(for pie). Radar doesn't want either — its `<Radar>` reads
+multiple columns via the `axes` prop, not one column via the
+container. So we relaxed the container's discriminated union to
+allow all three states:
+
+    valueKey set  → pie-flavored
+    value  set    → pie-flavored (function form)
+    NEITHER set   → radar-flavored (accessor is a no-op)
+
+Existing pie users unchanged. Radar users just don't pass the
+value/valueKey props. Documented but not enforced — sensible
+default for a family that has two data models.
+
+--- Three components + one helper file ------------------------
+
+`<RadarGrid axesCount={5} rings={4} />`
+    Background rings. Concentric closed polygons (default) or
+    concentric circles (`shape="circle"`). No data-dependent
+    logic — pure decoration derived from the axis count and
+    the container's radius.
+
+`<RadarAxes axes={["speed", "power", ...]} />`
+    Spokes from center to radius along each axis, plus axis
+    labels just beyond the endpoints. `textAnchor` flips
+    (start/end/middle) based on the label's angular position
+    so text doesn't crowd the center.
+
+`<Radar axes={[...]} maxValue={100} />`
+    The polygon(s). One `<path>` per data row, closed with Z.
+    Optional `showPoints` dots at each axis intersection.
+    Uses `maxValue` if set, else auto-computes the maximum from
+    the data.
+
+`polar/radarScales.ts`
+    The two pure math functions plus `polygonPath(points)`,
+    which formats an array of [x, y] pairs into an SVG "M x,y L
+    x,y ... Z" string. Extracted so it can be tested in isolation
+    (and reused by anything else needing polygon paths later).
+
+--- Multi-series pattern (rowIndex) ---------------------------
+
+Two radars on one chart (Alice + Bob) is the classic use case.
+Rather than having `<Radar>` render ALL rows and giving the
+container multiple color schemes to sort out, each `<Radar>`
+takes an optional `rowIndex` prop — when set, it renders ONLY
+that row. Multi-series is then just:
+
+    <Radar rowIndex={0} fill="blue" />
+    <Radar rowIndex={1} fill="emerald" />
+
+Two radars, two colors, two polygons. Zero context extension
+needed. Same pattern as putting two `<Bar>` in a Cartesian
+container each with a different `y` accessor — different
+component, same "each shape picks its slice" mental model.
+
+--- Tooltip integration: zero code changes --------------------
+
+Phase 6's `<PolarTooltip>` reads `activeIndex` from context.
+When a `<Radar>` polygon fires onMouseEnter, it sets the
+active index. `<PolarTooltip>` sees the change and renders the
+active row's data. Hovering Alice's polygon lights up the
+tooltip showing Alice's stats. Hovering Bob's lights up Bob's.
+
+Works because we made hover state PART OF THE CONTAINER back in
+Phase 6, not part of Pie. Anticipated Radar would need the same
+mechanism. Paid off.
+
+--- Files we created / touched in Phase 7 ---------------------
+
+`src/polar/radarScales.ts` (NEW)
+  axisAngle, polarPoint, polygonPath. Pure functions.
+
+`src/polar/RadarGrid.tsx` (NEW)
+  Concentric rings (polygons or circles).
+
+`src/polar/RadarAxes.tsx` (NEW)
+  Spokes + labels with anchor-flipping.
+
+`src/polar/Radar.tsx` (NEW)
+  Polygon(s) with optional dots + rowIndex + tooltip hover.
+
+`src/PolarChartContainer.tsx` (MODIFIED)
+  Value/valueKey props now optional. When neither is set, the
+  container works with `data` alone (radar case).
+
+`src/index.ts` (MODIFIED)
+  Added Radar, RadarGrid, RadarAxes and their prop types.
+
+`src/__tests__/radarScales.test.ts` (NEW)
+  5 tests. Pure math checks — no rendering, no jsdom needed.
+
+`src/__tests__/RadarGridAxes.test.tsx` (NEW)
+  3 tests. Grid renders correct ring shapes and count. Axes
+  renders one line + one text per axis.
+
+`src/__tests__/Radar.test.tsx` (NEW)
+  5 tests including the maxValue-scaling regression guard
+  (initially failed because the regex didn't handle scientific
+  notation — cos(-π/2) is technically 6e-17, so the M command
+  gets "5.3e-15" as the x coordinate. Broadened the regex to
+  match scientific-notation numbers).
+
+`playground/App.tsx` (EXTENDED)
+  Added a seventh card at the bottom: two overlapping radar
+  polygons (Alice blue, Bob emerald) across 5 skill axes with
+  4 grid rings. Manual chip legend above the chart. Centered
+  tooltip card renders the active player's full stat block.
+
+Total test count: 63 (up from 50 in Phase 6).
+
+--- Phase 7 status — all 9 chart types shipped ---------------
+
+Line, Area, Bar, Scatter, Stacked Bar, Stacked Area, Composed
+(via y accessor), Pie, Radar. That's the entire CLAUDE.md
+lineup. Everything from here is polish, ergonomics, or docs.
+
+Next: Phase 8 (animation, legend, grid, general polish), and
+Phase 9 (real docs site with MDX + live examples).
+
+
+------------------------------------------------------------
 5. CURRENT STATE — WHAT WORKS TODAY
 ------------------------------------------------------------
 
@@ -1675,16 +1844,15 @@ From `packages/chartly/` you can run:
 
   npm run typecheck        — TypeScript type check, no compilation
   npm run build            — Produces dist/ (dual ESM + CJS + .d.ts)
-  npm test                 — Runs vitest (50 tests, all passing)
+  npm test                 — Runs vitest (63 tests, all passing)
   npm run dev              — Rebuilds library on save (tsup --watch)
   npm run dev:playground   — Boots the Vite playground in the browser
 
-Build output size (as of end of Phase 6):
-  ESM  dist/index.js   21.89 KB  (was 19.09 KB after Phase 5e)
-  CJS  dist/index.cjs  23.46 KB  (was 20.43 KB after Phase 5e)
-  d.ts               ~8.44 KB
-  (Bump from PolarChartContainer + Pie + PolarTooltip + polar
-  context + d3-shape's pie/arc generators.)
+Build output size (as of end of Phase 7):
+  ESM  dist/index.js   27.12 KB  (was 21.89 KB after Phase 6)
+  CJS  dist/index.cjs  28.85 KB  (was 23.46 KB after Phase 6)
+  d.ts               ~9.64 KB
+  (Bump from Radar + RadarGrid + RadarAxes + radarScales.)
   D3 is NOT bundled — external via tsup's default rule for direct
   deps. React is externalized via tsup config.
 
@@ -1702,9 +1870,12 @@ The public API right now (things exported from `src/index.ts`):
     <Scatter />              circles per data point (Phase 5c)
     <StackedBar />           stacked bar chart   (Phase 5e)
     <StackedArea />          stacked area chart  (Phase 5e)
-    <PolarChartContainer />  polar chart container (Phase 6)
+    <PolarChartContainer />  polar chart container (Phase 6, extended 7)
     <Pie />                  pie / donut chart   (Phase 6)
     <PolarTooltip />         slice-hover tooltip (Phase 6)
+    <Radar />                radar / spider chart (Phase 7)
+    <RadarGrid />            concentric ring background (Phase 7)
+    <RadarAxes />            spokes + axis labels (Phase 7)
 
   Helpers:
     stackSum(data, keys)     max stacked total   (Phase 5e)
@@ -1735,6 +1906,9 @@ The public API right now (things exported from `src/index.ts`):
     PolarTooltipProps<T>     PolarTooltip render children        (Phase 6)
     PolarTooltipState<T>     { datum, cx, cy, radius, ... }      (Phase 6)
     PolarTooltipRender<T>    render function type                (Phase 6)
+    RadarProps<T>            generic radar props                 (Phase 7)
+    RadarGridProps           background grid config              (Phase 7)
+    RadarAxesProps           spokes + labels config              (Phase 7)
     AxisProps                shared XAxis/YAxis prop shape
     TooltipProps<T>          Tooltip props (typed datum)         (Phase 4)
     TooltipState<T>          { x, y, datum, index } passed to    (Phase 4)
@@ -1822,14 +1996,15 @@ Refer to CLAUDE.md for the master list. In short:
                  Pie/Donut + PolarTooltip. First non-Cartesian
                  family. Fully separate context; zero changes to
                  Cartesian code path.
-  Phase 7  NEXT  Radar chart. Reuses this phase's PolarChart-
-                 Container. Adds one new component and probably
-                 introduces angular + radial scale primitives.
-  Phase 6        Polar architecture: PolarChartContainer + Pie
-                 (extracts useResize into its shared final form)
-  Phase 7        Radar chart (reuses polar container)
-  Phase 8        Animation + polish: transitions, legend, grid
-  Phase 9        Docs site with live examples (MDX + Sandpack)
+  Phase 7  DONE  Radar chart + RadarGrid + RadarAxes. Reused the
+                 polar container without modification. All 9 chart
+                 types from the roadmap now shipped.
+  Phase 8  NEXT  Polish: mount + transition animations, a proper
+                 <Legend> component, dotted grid lines for Cartesian
+                 axes, textFill prop on axes for the dark-theme case
+                 the reference chart flagged, and any ergonomics
+                 debt collected along the way.
+  Phase 9        Docs site with live examples (MDX + Sandpack).
 
 
 ------------------------------------------------------------

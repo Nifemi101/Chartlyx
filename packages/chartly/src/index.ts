@@ -31,6 +31,9 @@ export {
   PolarTooltip,
   type PolarTooltipProps,
 } from "./polar/PolarTooltip";
+export { Radar, type RadarProps } from "./polar/Radar";
+export { RadarGrid, type RadarGridProps } from "./polar/RadarGrid";
+export { RadarAxes, type RadarAxesProps } from "./polar/RadarAxes";
 export { usePolarChartContext } from "./polar/context";
 export type {
   PolarChartContextValue,

@@ -8,6 +8,9 @@ import {
   Pie,
   PolarChartContainer,
   PolarTooltip,
+  Radar,
+  RadarAxes,
+  RadarGrid,
   Scatter,
   StackedBar,
   Tooltip,
@@ -120,6 +123,38 @@ const PIE_COLORS = [
 ] as const;
 
 const PIE_TOTAL = productMix.reduce((s, r) => s + r.revenue, 0);
+
+interface Stats {
+  name: string;
+  speed: number;
+  power: number;
+  defense: number;
+  magic: number;
+  agility: number;
+}
+
+const players: Stats[] = [
+  {
+    name: "Alice",
+    speed: 75,
+    power: 60,
+    defense: 80,
+    magic: 90,
+    agility: 70,
+  },
+  {
+    name: "Bob",
+    speed: 85,
+    power: 90,
+    defense: 55,
+    magic: 40,
+    agility: 75,
+  },
+];
+
+const RADAR_AXES = ["speed", "power", "defense", "magic", "agility"] as const;
+const RADAR_COLORS = ["#3b82f6", "#10b981"] as const;
+const RADAR_MAX = 100;
 
 const people: Person[] = [
   { age: 22, income: 34 },
@@ -617,6 +652,118 @@ export function App(): React.JSX.Element {
                       <div style={{ fontSize: 10, color: "#6b7280" }}>
                         {pct}% of total
                       </div>
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            }}
+          </PolarTooltip>
+        </PolarChartContainer>
+      </div>
+    </div>
+
+    <div style={CARD_STYLE}>
+      <header style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>
+          Player skill comparison
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+          Radar chart
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            marginTop: 10,
+            fontSize: 11,
+            color: "#374151",
+          }}
+        >
+          {players.map((p, i) => (
+            <span
+              key={p.name}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  background: RADAR_COLORS[i],
+                  display: "inline-block",
+                }}
+              />
+              {p.name}
+            </span>
+          ))}
+        </div>
+      </header>
+      <div style={{ height: 380 }}>
+        <PolarChartContainer<Stats> data={players} padding={48}>
+          <RadarGrid axesCount={RADAR_AXES.length} rings={4} />
+          <RadarAxes axes={RADAR_AXES as unknown as string[]} />
+          {players.map((_, i) => (
+            <Radar<Stats>
+              key={i}
+              axes={[...RADAR_AXES]}
+              maxValue={RADAR_MAX}
+              rowIndex={i}
+              fill={RADAR_COLORS[i]}
+              fillOpacity={0.25}
+              strokeWidth={2}
+            />
+          ))}
+          <PolarTooltip<Stats>>
+            {({ datum, cx, cy }) => {
+              const cardW = 170;
+              const cardH = 116;
+              return (
+                <g pointerEvents="none">
+                  <foreignObject
+                    x={cx - cardW / 2}
+                    y={cy - cardH / 2}
+                    width={cardW}
+                    height={cardH}
+                  >
+                    <div
+                      style={{
+                        width: cardW,
+                        height: cardH,
+                        borderRadius: 6,
+                        border: "1px solid #e5e7eb",
+                        background: "white",
+                        padding: "8px 12px",
+                        boxSizing: "border-box",
+                        fontFamily: "system-ui, sans-serif",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "#111827",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {datum.name}
+                      </div>
+                      {RADAR_AXES.map((axis) => (
+                        <div
+                          key={axis}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 11,
+                            color: "#6b7280",
+                            lineHeight: "16px",
+                          }}
+                        >
+                          <span>{axis}</span>
+                          <span style={{ color: "#111827", fontWeight: 500 }}>
+                            {datum[axis]}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </foreignObject>
                 </g>

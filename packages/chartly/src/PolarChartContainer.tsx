@@ -6,7 +6,8 @@ import type { KeysOfType } from "./types";
 
 type ValueProps<T> =
   | { valueKey: KeysOfType<T, number>; value?: never }
-  | { value: (d: T) => number; valueKey?: never };
+  | { value: (d: T) => number; valueKey?: never }
+  | { valueKey?: never; value?: never };
 
 export type PolarChartContainerProps<T> = {
   data: readonly T[];
@@ -30,10 +31,7 @@ export function PolarChartContainer<T>(
   } = props;
   const { ref, width, height } = useResize<HTMLDivElement>();
 
-  const valueAccessor: (d: T) => number =
-    "value" in props && typeof props.value === "function"
-      ? (props.value as (d: T) => number)
-      : (d: T) => d[(props as { valueKey: keyof T }).valueKey] as number;
+  const valueAccessor: (d: T) => number = resolvePolarAccessor(props);
 
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
 
@@ -67,4 +65,18 @@ export function PolarChartContainer<T>(
       </svg>
     </div>
   );
+}
+
+function resolvePolarAccessor<T>(
+  props: PolarChartContainerProps<T>,
+): (d: T) => number {
+  if ("value" in props && typeof props.value === "function") {
+    return props.value as (d: T) => number;
+  }
+  if ("valueKey" in props && props.valueKey !== undefined) {
+    const key = props.valueKey as keyof T;
+    return (d: T) => d[key] as unknown as number;
+  }
+  // Neither set — radar case. Unused; return a stable no-op.
+  return () => 0;
 }
