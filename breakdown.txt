@@ -2153,6 +2153,18 @@ FOREIGNOBJECT  — an SVG element that lets you embed a chunk of HTML
                   in the pie tooltip because HTML+CSS handles multi-
                   line styled content (borders, padding, rounded
                   corners) more cleanly than SVG `<text>`.
+RADAR CHART    — a polar chart that shows one row across N numeric
+                  dimensions. Each dimension gets an axis radiating
+                  from the center; row values become distances along
+                  those axes, connected into a closed polygon. Also
+                  called "spider" or "web" chart.
+SPOKE          — one of the axis lines in a radar chart, running from
+                  the center to the outer radius at a fixed angle.
+                  Rendered by our `<RadarAxes>`.
+RING           — one of the concentric background lines in a radar
+                  chart at a fractional radius (e.g., 25% / 50% /
+                  75% / 100%). Helps the eye read the value at each
+                  polygon vertex. Rendered by our `<RadarGrid>`.
 
 
 

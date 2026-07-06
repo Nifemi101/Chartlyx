@@ -20,6 +20,7 @@ export {
 export type { CurveType } from "./shapes/curves";
 export { XAxis } from "./axes/XAxis";
 export { YAxis } from "./axes/YAxis";
+export { Legend, type LegendProps, type LegendItem } from "./Legend";
 export { Tooltip, type TooltipProps } from "./interaction/Tooltip";
 export type { TooltipState, TooltipRender } from "./interaction/types";
 export {

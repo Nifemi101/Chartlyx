@@ -34,6 +34,32 @@ describe("XAxis", () => {
     );
     expect(labels.some((t) => t.textContent === "Time")).toBe(true);
   });
+
+  it("textFill overrides tick text fill; stroke stays on axis line", () => {
+    const { container } = renderInChart(
+      <XAxis stroke="red" textFill="blue" />,
+    );
+    const axis = container.querySelector('[data-chartly-axis="x"]')!;
+    const line = axis.querySelector("line")!;
+    const text = axis.querySelector("text")!;
+    expect(line.getAttribute("stroke")).toBe("red");
+    expect(text.getAttribute("fill")).toBe("blue");
+  });
+
+  it("labelFill overrides only the axis title", () => {
+    const { container } = renderInChart(
+      <XAxis label="Time" stroke="red" textFill="blue" labelFill="green" />,
+    );
+    const texts = Array.from(
+      container.querySelectorAll<SVGTextElement>(
+        '[data-chartly-axis="x"] text',
+      ),
+    );
+    const title = texts.find((t) => t.textContent === "Time")!;
+    const tick = texts.find((t) => t.textContent !== "Time")!;
+    expect(title.getAttribute("fill")).toBe("green");
+    expect(tick.getAttribute("fill")).toBe("blue");
+  });
 });
 
 describe("YAxis", () => {

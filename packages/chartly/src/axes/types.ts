@@ -11,4 +11,6 @@ export interface AxisProps<V extends TickValue = TickValue> {
   label?: string;
   labelOffset?: number;
   stroke?: string;
+  textFill?: string;
+  labelFill?: string;
 }

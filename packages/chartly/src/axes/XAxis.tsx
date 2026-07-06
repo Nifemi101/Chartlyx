@@ -9,6 +9,8 @@ export function XAxis({
   label,
   labelOffset = 30,
   stroke = "currentColor",
+  textFill,
+  labelFill,
 }: AxisProps): React.JSX.Element {
   const { xScale, width, height, margin } = useChartContext();
   const y = height - margin.bottom;
@@ -17,6 +19,8 @@ export function XAxis({
 
   const ticks = getTicks(xScale, tickCount);
   const format = tickFormatter ?? ((v: TickValue) => String(v));
+  const tickFill = textFill ?? stroke;
+  const axisLabelFill = labelFill ?? tickFill;
 
   return (
     <g data-chartly-axis="x">
@@ -31,7 +35,7 @@ export function XAxis({
               dy="0.71em"
               textAnchor="middle"
               fontSize={10}
-              fill={stroke}
+              fill={tickFill}
             >
               {format(tick, i)}
             </text>
@@ -44,7 +48,7 @@ export function XAxis({
           y={y + labelOffset}
           textAnchor="middle"
           fontSize={12}
-          fill={stroke}
+          fill={axisLabelFill}
         >
           {label}
         </text>

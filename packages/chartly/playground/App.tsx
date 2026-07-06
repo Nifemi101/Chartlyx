@@ -3,6 +3,7 @@ import {
   Area,
   Bar,
   ChartContainer,
+  Legend,
   Line,
   LinearGradient,
   Pie,
@@ -285,8 +286,8 @@ export function App(): React.JSX.Element {
           yScaleType="linear"
           margin={{ top: 20, right: 20, bottom: 34, left: 50 }}
         >
-          <XAxis stroke="#9ca3af" />
-          <YAxis stroke="#9ca3af" />
+          <XAxis stroke="#e5e7eb" textFill="#374151" />
+          <YAxis stroke="#e5e7eb" textFill="#374151" />
           <Bar fill={ACCENT} radius={4} />
           <Tooltip<Product>
             indicatorStroke="#9ca3af"
@@ -454,32 +455,14 @@ export function App(): React.JSX.Element {
         <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
           Stacked bar chart
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 16,
-            marginTop: 10,
-            fontSize: 11,
-            color: "#374151",
-          }}
-        >
-          {STACK_KEYS.map((k, i) => (
-            <span
-              key={k}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
-                  background: STACK_COLORS[i],
-                  display: "inline-block",
-                }}
-              />
-              {k}
-            </span>
-          ))}
+        <div style={{ marginTop: 10 }}>
+          <Legend
+            items={STACK_KEYS.map((k, i) => ({
+              label: k,
+              color: STACK_COLORS[i]!,
+            }))}
+            gap={16}
+          />
         </div>
       </header>
       <div style={{ height: 300 }}>
@@ -556,33 +539,14 @@ export function App(): React.JSX.Element {
         <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
           Donut chart · ${PIE_TOTAL.toLocaleString()} total
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 14,
-            marginTop: 10,
-            flexWrap: "wrap",
-            fontSize: 11,
-            color: "#374151",
-          }}
-        >
-          {productMix.map((row, i) => (
-            <span
-              key={row.name}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 999,
-                  background: PIE_COLORS[i],
-                  display: "inline-block",
-                }}
-              />
-              {row.name}
-            </span>
-          ))}
+        <div style={{ marginTop: 10 }}>
+          <Legend
+            items={productMix.map((row, i) => ({
+              label: row.name,
+              color: PIE_COLORS[i]!,
+              shape: "circle",
+            }))}
+          />
         </div>
       </header>
       <div style={{ height: 320 }}>
@@ -670,32 +634,14 @@ export function App(): React.JSX.Element {
         <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
           Radar chart
         </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 14,
-            marginTop: 10,
-            fontSize: 11,
-            color: "#374151",
-          }}
-        >
-          {players.map((p, i) => (
-            <span
-              key={p.name}
-              style={{ display: "flex", alignItems: "center", gap: 6 }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 999,
-                  background: RADAR_COLORS[i],
-                  display: "inline-block",
-                }}
-              />
-              {p.name}
-            </span>
-          ))}
+        <div style={{ marginTop: 10 }}>
+          <Legend
+            items={players.map((p, i) => ({
+              label: p.name,
+              color: RADAR_COLORS[i]!,
+              shape: "circle",
+            }))}
+          />
         </div>
       </header>
       <div style={{ height: 380 }}>

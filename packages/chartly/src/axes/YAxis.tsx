@@ -9,6 +9,8 @@ export function YAxis({
   label,
   labelOffset = 40,
   stroke = "currentColor",
+  textFill,
+  labelFill,
 }: AxisProps): React.JSX.Element {
   const { yScale, height, margin } = useChartContext();
   const x = margin.left;
@@ -17,6 +19,8 @@ export function YAxis({
 
   const ticks = getTicks(yScale, tickCount);
   const format = tickFormatter ?? ((v: TickValue) => String(v));
+  const tickFill = textFill ?? stroke;
+  const axisLabelFill = labelFill ?? tickFill;
 
   return (
     <g data-chartly-axis="y">
@@ -31,7 +35,7 @@ export function YAxis({
               dy="0.32em"
               textAnchor="end"
               fontSize={10}
-              fill={stroke}
+              fill={tickFill}
             >
               {format(tick, i)}
             </text>
@@ -43,7 +47,7 @@ export function YAxis({
           transform={`translate(${x - labelOffset}, ${(y0 + y1) / 2}) rotate(-90)`}
           textAnchor="middle"
           fontSize={12}
-          fill={stroke}
+          fill={axisLabelFill}
         >
           {label}
         </text>
