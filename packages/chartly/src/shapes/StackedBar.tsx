@@ -10,6 +10,7 @@ export interface StackedBarProps<T = unknown> {
   radius?: number;
   stroke?: string;
   strokeWidth?: number;
+  animate?: boolean;
 }
 
 const FALLBACK_BAR_WIDTH = 20;
@@ -20,7 +21,14 @@ export function StackedBar<T = unknown>({
   radius = 0,
   stroke = "none",
   strokeWidth = 0,
+  animate = false,
 }: StackedBarProps<T>): React.JSX.Element {
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const { data, xScale, yScale, xAccessor } = useChartContext<T>();
 
   const stackGen = d3stack<T, string>().keys(keys as unknown as string[]);
@@ -53,6 +61,7 @@ export function StackedBar<T = unknown>({
                   rx={isTopSegment ? radius : 0}
                   stroke={stroke}
                   strokeWidth={strokeWidth}
+                  style={animationStyle}
                 />
               );
             })}

@@ -12,6 +12,7 @@ export interface StackedAreaProps<T = unknown> {
   stroke?: string;
   strokeWidth?: number;
   fillOpacity?: number;
+  animate?: boolean;
 }
 
 interface StackPoint {
@@ -27,7 +28,14 @@ export function StackedArea<T = unknown>({
   stroke = "none",
   strokeWidth = 0,
   fillOpacity = 1,
+  animate = false,
 }: StackedAreaProps<T>): React.JSX.Element {
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const { data, xScale, yScale, xAccessor } = useChartContext<T>();
 
   const stackGen = d3stack<T, string>().keys(keys as unknown as string[]);
@@ -64,6 +72,7 @@ export function StackedArea<T = unknown>({
             fillOpacity={fillOpacity}
             stroke={stroke}
             strokeWidth={strokeWidth}
+            style={animationStyle}
           />
         );
       })}

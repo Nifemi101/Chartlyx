@@ -26,6 +26,12 @@ describe("Line", () => {
     expect(path.getAttribute("fill")).toBe("none");
   });
 
+  it("applies transition styles when animate is enabled", () => {
+    const { container } = renderInChart(<Line animate />);
+    const path = container.querySelector("path")!;
+    expect(path.style.transition).toContain("fill 250ms ease");
+  });
+
   it("invokes label render-prop with pixel geometry per point", () => {
     const label = vi.fn((_p) => null);
     renderInChart(<Line<Row> label={label} />);

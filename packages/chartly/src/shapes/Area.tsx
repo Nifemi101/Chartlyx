@@ -11,6 +11,7 @@ export interface AreaProps<T = unknown> extends YOverride<T> {
   stroke?: string;
   strokeWidth?: number;
   curve?: CurveType;
+  animate?: boolean;
   label?: ShapeLabelRender<T>;
 }
 
@@ -28,8 +29,15 @@ export function Area<T = unknown>(props: AreaProps<T>): React.JSX.Element {
     stroke = "none",
     strokeWidth = 0,
     curve = "linear",
+    animate = false,
     label,
   } = props;
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const { data, xScale, yScale, xAccessor, yAccessor, height, margin } =
     useChartContext<T>();
   const yFn = resolveYAccessor<T>(props, yAccessor);
@@ -59,6 +67,7 @@ export function Area<T = unknown>(props: AreaProps<T>): React.JSX.Element {
         fillOpacity={fillOpacity}
         stroke={stroke}
         strokeWidth={strokeWidth}
+        style={animationStyle}
       />
       {label ? (
         <g>

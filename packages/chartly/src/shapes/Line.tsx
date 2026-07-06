@@ -9,6 +9,7 @@ export interface LineProps<T = unknown> extends YOverride<T> {
   stroke?: string;
   strokeWidth?: number;
   curve?: CurveType;
+  animate?: boolean;
   label?: ShapeLabelRender<T>;
 }
 
@@ -24,9 +25,16 @@ export function Line<T = unknown>(props: LineProps<T>): React.JSX.Element {
     stroke = "currentColor",
     strokeWidth = 2,
     curve = "linear",
+    animate = false,
     label,
   } = props;
   const { data, xScale, yScale, xAccessor, yAccessor } = useChartContext<T>();
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const yFn = resolveYAccessor<T>(props, yAccessor);
 
   const points: Point<T>[] = data.map((d, index) => {
@@ -50,6 +58,7 @@ export function Line<T = unknown>(props: LineProps<T>): React.JSX.Element {
         stroke={stroke}
         strokeWidth={strokeWidth}
         fill="none"
+        style={animationStyle}
       />
       {label ? (
         <g>

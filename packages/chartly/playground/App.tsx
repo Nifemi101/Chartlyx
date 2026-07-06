@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   Area,
   Bar,
+  CartesianGrid,
   ChartContainer,
   Legend,
   Line,
@@ -200,18 +201,161 @@ const CARD_STYLE: React.CSSProperties = {
 };
 
 export function App(): React.JSX.Element {
+  const [animatedData, setAnimatedData] = React.useState<Row[]>(data);
+  const [productData, setProductData] = React.useState<Product[]>(products);
+  const [peopleData, setPeopleData] = React.useState<Person[]>(people);
+  const [salesData, setSalesData] = React.useState<Sale[]>(sales);
+  const [quarterData, setQuarterData] = React.useState<QuarterSales[]>(quarter);
+  const [productMixData, setProductMixData] = React.useState<ProductMix[]>(productMix);
+  const [playerData, setPlayerData] = React.useState<Stats[]>(players);
+
+  const totalRevenue = animatedData.reduce((sum, row) => sum + row.revenue, 0);
+  const monthCount = animatedData.length;
+  const totalProductUnits = productData.reduce((sum, row) => sum + row.sales, 0);
+  const totalSalesRevenue = salesData.reduce((sum, row) => sum + row.revenue, 0);
+  const pieTotal = productMixData.reduce((sum, row) => sum + row.revenue, 0);
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+
+  const randomizeRevenue = () => {
+    setAnimatedData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        revenue: Math.max(
+          80,
+          Math.round(row.revenue * (0.85 + Math.random() * 0.3)),
+        ),
+      })),
+    );
+  };
+
+  const randomizeProducts = () => {
+    setProductData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        sales: Math.max(
+          8,
+          Math.round(row.sales * (0.7 + Math.random() * 0.6)),
+        ),
+      })),
+    );
+  };
+
+  const randomizePeople = () => {
+    setPeopleData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        income: Math.max(
+          20,
+          Math.round(row.income * (0.8 + Math.random() * 0.4)),
+        ),
+      })),
+    );
+  };
+
+  const randomizeSales = () => {
+    setSalesData((prev) => {
+      const next = prev.map((row) => ({
+        ...row,
+        revenue: Math.max(
+          90,
+          Math.round(row.revenue * (0.75 + Math.random() * 0.5)),
+        ),
+      }));
+      return next.map((row, index, arr) => {
+        const window = arr.slice(Math.max(0, index - 2), index + 1);
+        const runningAvg = Math.round(
+          window.reduce((sum, item) => sum + item.revenue, 0) / window.length,
+        );
+        return { ...row, runningAvg };
+      });
+    });
+  };
+
+  const randomizeQuarter = () => {
+    setQuarterData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        laptops: Math.max(
+          40,
+          Math.round(row.laptops * (0.7 + Math.random() * 0.5)),
+        ),
+        phones: Math.max(
+          30,
+          Math.round(row.phones * (0.7 + Math.random() * 0.5)),
+        ),
+        tablets: Math.max(
+          18,
+          Math.round(row.tablets * (0.7 + Math.random() * 0.5)),
+        ),
+      })),
+    );
+  };
+
+  const randomizeProductMix = () => {
+    setProductMixData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        revenue: Math.max(
+          500,
+          Math.round(row.revenue * (0.7 + Math.random() * 0.6)),
+        ),
+      })),
+    );
+  };
+
+  const randomizePlayers = () => {
+    setPlayerData((prev) =>
+      prev.map((row) => ({
+        ...row,
+        speed: clamp(Math.round(row.speed * (0.8 + Math.random() * 0.4)), 0, 100),
+        power: clamp(Math.round(row.power * (0.8 + Math.random() * 0.4)), 0, 100),
+        defense: clamp(Math.round(row.defense * (0.8 + Math.random() * 0.4)), 0, 100),
+        magic: clamp(Math.round(row.magic * (0.8 + Math.random() * 0.4)), 0, 100),
+        agility: clamp(Math.round(row.agility * (0.8 + Math.random() * 0.4)), 0, 100),
+      })),
+    );
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>Revenue</div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          $940 total · 5 months
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Revenue</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            ${totalRevenue.toLocaleString()} total · {monthCount} months
+          </div>
         </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizeRevenue}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 300 }}>
         <ChartContainer
-          data={data}
+          data={animatedData}
           xKey="month"
           xScaleType="time"
           yKey="revenue"
@@ -225,6 +369,12 @@ export function App(): React.JSX.Element {
             fromOpacity={0.25}
             toOpacity={0}
           />
+          <CartesianGrid
+            stroke="#e5e7eb"
+            strokeOpacity={0.6}
+            xTickCount={6}
+            yTickCount={5}
+          />
           <XAxis
             stroke="#9ca3af"
             tickFormatter={(v) => monthFmt.format(v as Date)}
@@ -233,8 +383,13 @@ export function App(): React.JSX.Element {
             stroke="#9ca3af"
             tickFormatter={(v) => `$${v}`}
           />
-          <Area fill="url(#revenueFill)" curve="monotone" />
-          <Line stroke={ACCENT} strokeWidth={2} curve="monotone" />
+          <Area animate fill="url(#revenueFill)" curve="monotone" />
+          <Line
+            animate
+            stroke={ACCENT}
+            strokeWidth={2}
+            curve="monotone"
+          />
           <Tooltip<Row> indicatorStroke="#9ca3af" dotFill={ACCENT}>
             {({ x, y, datum }) => {
               const cardH = 46;
@@ -271,15 +426,41 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>Sales by product</div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          186 units · 4 products
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Sales by product</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            {totalProductUnits} units · {productData.length} products
+          </div>
         </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizeProducts}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 280 }}>
         <ChartContainer
-          data={products}
+          data={productData}
           xKey="name"
           xScaleType="band"
           yKey="sales"
@@ -329,15 +510,41 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>Age vs Income</div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          {people.length} people surveyed
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>Age vs Income</div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            {peopleData.length} people surveyed
+          </div>
         </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizePeople}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 300 }}>
         <ChartContainer
-          data={people}
+          data={peopleData}
           xKey="age"
           xScaleType="linear"
           yKey="income"
@@ -383,17 +590,43 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          Revenue + 3-month running average
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Revenue + 3-month running average
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            Composed chart · ${totalSalesRevenue}
+          </div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          Composed chart
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizeSales}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 300 }}>
         <ChartContainer
-          data={sales}
+          data={salesData}
           xKey="month"
           xScaleType="band"
           yKey="revenue"
@@ -448,26 +681,43 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          Sales by category
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Sales by category
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            Stacked bar chart · ${stackSum(quarterData, STACK_KEYS)} total
+          </div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          Stacked bar chart
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <Legend
-            items={STACK_KEYS.map((k, i) => ({
-              label: k,
-              color: STACK_COLORS[i]!,
-            }))}
-            gap={16}
-          />
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizeQuarter}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 300 }}>
         <ChartContainer
-          data={quarter}
+          data={quarterData}
           xKey="month"
           xScaleType="band"
           yKey="laptops"
@@ -532,26 +782,43 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          Revenue share by product
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Revenue share by product
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            Donut chart · ${pieTotal.toLocaleString()} total
+          </div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          Donut chart · ${PIE_TOTAL.toLocaleString()} total
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <Legend
-            items={productMix.map((row, i) => ({
-              label: row.name,
-              color: PIE_COLORS[i]!,
-              shape: "circle",
-            }))}
-          />
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizeProductMix}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 320 }}>
         <PolarChartContainer<ProductMix>
-          data={productMix}
+          data={productMixData}
           valueKey="revenue"
           innerRadius={70}
           padding={16}
@@ -559,7 +826,7 @@ export function App(): React.JSX.Element {
           <Pie<ProductMix>
             colors={PIE_COLORS}
             label={({ centroid, datum }) => {
-              const pct = Math.round((datum.revenue / PIE_TOTAL) * 100);
+              const pct = Math.round((datum.revenue / pieTotal) * 100);
               if (pct < 8) return null; // hide labels on thin slices
               return (
                 <text
@@ -578,7 +845,7 @@ export function App(): React.JSX.Element {
           />
           <PolarTooltip<ProductMix>>
             {({ datum, cx, cy }) => {
-              const pct = ((datum.revenue / PIE_TOTAL) * 100).toFixed(1);
+              const pct = ((datum.revenue / pieTotal) * 100).toFixed(1);
               const cardW = 140;
               const cardH = 54;
               return (
@@ -627,25 +894,42 @@ export function App(): React.JSX.Element {
     </div>
 
     <div style={CARD_STYLE}>
-      <header style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: "#6b7280" }}>
-          Player skill comparison
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#6b7280" }}>
+            Player skill comparison
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+            Radar chart · {playerData.length} players
+          </div>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
-          Radar chart
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <Legend
-            items={players.map((p, i) => ({
-              label: p.name,
-              color: RADAR_COLORS[i]!,
-              shape: "circle",
-            }))}
-          />
-        </div>
-      </header>
+        <button
+          type="button"
+          onClick={randomizePlayers}
+          style={{
+            border: "1px solid #d1d5db",
+            background: "white",
+            color: "#111827",
+            borderRadius: 8,
+            padding: "10px 14px",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Randomize
+        </button>
+      </div>
       <div style={{ height: 380 }}>
-        <PolarChartContainer<Stats> data={players} padding={48}>
+        <PolarChartContainer<Stats> data={playerData} padding={48}>
           <RadarGrid axesCount={RADAR_AXES.length} rings={4} />
           <RadarAxes axes={RADAR_AXES as unknown as string[]} />
           {players.map((_, i) => (

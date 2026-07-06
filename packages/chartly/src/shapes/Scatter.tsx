@@ -10,6 +10,7 @@ export interface ScatterProps<T = unknown> extends YOverride<T> {
   stroke?: string;
   strokeWidth?: number;
   radius?: number;
+  animate?: boolean;
   label?: ShapeLabelRender<T>;
 }
 
@@ -20,8 +21,15 @@ export function Scatter<T = unknown>(props: ScatterProps<T>): React.JSX.Element 
     stroke = "none",
     strokeWidth = 0,
     radius = 4,
+    animate = false,
     label,
   } = props;
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const { data, xScale, yScale, xAccessor, yAccessor } = useChartContext<T>();
   const yFn = resolveYAccessor<T>(props, yAccessor);
 
@@ -43,6 +51,7 @@ export function Scatter<T = unknown>(props: ScatterProps<T>): React.JSX.Element 
           fillOpacity={fillOpacity}
           stroke={stroke}
           strokeWidth={strokeWidth}
+          style={animationStyle}
         />
       ))}
       {label ? (

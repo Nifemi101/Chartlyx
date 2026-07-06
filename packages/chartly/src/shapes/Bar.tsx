@@ -10,6 +10,7 @@ export interface BarProps<T = unknown> extends YOverride<T> {
   strokeWidth?: number;
   radius?: number;
   baseline?: number;
+  animate?: boolean;
   label?: ShapeLabelRender<T>;
 }
 
@@ -23,8 +24,15 @@ export function Bar<T = unknown>(props: BarProps<T>): React.JSX.Element {
     strokeWidth = 0,
     radius = 0,
     baseline = 0,
+    animate = false,
     label,
   } = props;
+  const animationStyle: React.CSSProperties | undefined = animate
+    ? {
+        transition:
+          "fill 250ms ease, stroke 250ms ease, opacity 250ms ease, transform 250ms ease",
+      }
+    : undefined;
   const { data, xScale, yScale, xAccessor, yAccessor, height, margin } =
     useChartContext<T>();
   const yFn = resolveYAccessor<T>(props, yAccessor);
@@ -63,6 +71,7 @@ export function Bar<T = unknown>(props: BarProps<T>): React.JSX.Element {
           fillOpacity={fillOpacity}
           stroke={stroke}
           strokeWidth={strokeWidth}
+          style={animationStyle}
         />
       ))}
       {label ? (
