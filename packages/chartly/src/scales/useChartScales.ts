@@ -19,6 +19,7 @@ export interface UseChartScalesParams<T> {
   margin: Margin;
   width: number;
   height: number;
+  yDomain?: [number, number];
 }
 
 export function useChartScales<T>(params: UseChartScalesParams<T>): ChartScales {
@@ -31,13 +32,17 @@ export function useChartScales<T>(params: UseChartScalesParams<T>): ChartScales 
     margin,
     width,
     height,
+    yDomain,
   } = params;
 
   const xRange: [number, number] = [margin.left, width - margin.right];
   const yRange: [number, number] = [height - margin.bottom, margin.top];
 
   const xScale = buildScale(xScaleType, data, xAccessor, xRange);
-  const yScale = buildScale(yScaleType, data, yAccessor, yRange);
+  const yScale =
+    yDomain && yScaleType === "linear"
+      ? scaleLinear().domain(yDomain).range(yRange).nice()
+      : buildScale(yScaleType, data, yAccessor, yRange);
 
   return {
     xScale,

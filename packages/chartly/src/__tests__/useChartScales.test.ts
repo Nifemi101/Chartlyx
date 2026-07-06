@@ -131,4 +131,22 @@ describe("useChartScales", () => {
     expect(xScale.domain()).toHaveLength(2);
     expect(yScale.domain()).toHaveLength(2);
   });
+
+  it("explicit yDomain bypasses extent-based inference", () => {
+    const data = [{ y: 5 }, { y: 10 }];
+    const { yScale } = useChartScales({
+      data,
+      xAccessor: () => 0,
+      yAccessor: (d) => d.y,
+      xScaleType: "linear",
+      yScaleType: "linear",
+      margin: MARGIN,
+      width: 200,
+      height: 200,
+      yDomain: [0, 500],
+    });
+    const [dMin, dMax] = yScale.domain() as [number, number];
+    expect(dMin).toBeLessThanOrEqual(0);
+    expect(dMax).toBeGreaterThanOrEqual(500);
+  });
 });

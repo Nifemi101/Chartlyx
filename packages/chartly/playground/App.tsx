@@ -5,10 +5,15 @@ import {
   ChartContainer,
   Line,
   LinearGradient,
+  Pie,
+  PolarChartContainer,
+  PolarTooltip,
   Scatter,
+  StackedBar,
   Tooltip,
   XAxis,
   YAxis,
+  stackSum,
 } from "../src";
 
 interface Row {
@@ -73,6 +78,48 @@ const sales: Sale[] = [
   { month: "Nov", revenue: 109, runningAvg: 120 },
   { month: "Dec", revenue: 200, runningAvg: 205 },
 ];
+
+interface QuarterSales {
+  month: string;
+  laptops: number;
+  phones: number;
+  tablets: number;
+}
+
+const quarter: QuarterSales[] = [
+  { month: "Jan", laptops: 120, phones: 80, tablets: 45 },
+  { month: "Feb", laptops: 140, phones: 90, tablets: 60 },
+  { month: "Mar", laptops: 110, phones: 100, tablets: 55 },
+  { month: "Apr", laptops: 160, phones: 110, tablets: 70 },
+  { month: "May", laptops: 180, phones: 130, tablets: 80 },
+  { month: "Jun", laptops: 155, phones: 120, tablets: 75 },
+];
+
+const STACK_COLORS = ["#3b82f6", "#10b981", "#f59e0b"] as const;
+const STACK_KEYS = ["laptops", "phones", "tablets"] as const;
+
+interface ProductMix {
+  name: string;
+  revenue: number;
+}
+
+const productMix: ProductMix[] = [
+  { name: "Laptops", revenue: 4200 },
+  { name: "Phones", revenue: 3100 },
+  { name: "Tablets", revenue: 1700 },
+  { name: "Watches", revenue: 900 },
+  { name: "Accessories", revenue: 1100 },
+];
+
+const PIE_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+] as const;
+
+const PIE_TOTAL = productMix.reduce((s, r) => s + r.revenue, 0);
 
 const people: Person[] = [
   { age: 22, income: 34 },
@@ -361,6 +408,222 @@ export function App(): React.JSX.Element {
             }}
           </Tooltip>
         </ChartContainer>
+      </div>
+    </div>
+
+    <div style={CARD_STYLE}>
+      <header style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>
+          Sales by category
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+          Stacked bar chart
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 16,
+            marginTop: 10,
+            fontSize: 11,
+            color: "#374151",
+          }}
+        >
+          {STACK_KEYS.map((k, i) => (
+            <span
+              key={k}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  background: STACK_COLORS[i],
+                  display: "inline-block",
+                }}
+              />
+              {k}
+            </span>
+          ))}
+        </div>
+      </header>
+      <div style={{ height: 300 }}>
+        <ChartContainer
+          data={quarter}
+          xKey="month"
+          xScaleType="band"
+          yKey="laptops"
+          yScaleType="linear"
+          yDomain={[0, stackSum(quarter, STACK_KEYS)]}
+          margin={{ top: 20, right: 20, bottom: 34, left: 50 }}
+        >
+          <XAxis stroke="#9ca3af" />
+          <YAxis stroke="#9ca3af" tickFormatter={(v) => `$${v}`} />
+          <StackedBar<QuarterSales>
+            keys={STACK_KEYS}
+            colors={STACK_COLORS}
+            radius={4}
+          />
+          <Tooltip<QuarterSales>
+            indicatorStroke="#9ca3af"
+            indicatorOpacity={0.25}
+            dotFill={STACK_COLORS[0]}
+          >
+            {({ x, y, datum }) => {
+              const cardH = 78;
+              const gap = 10;
+              const above = y > cardH + gap;
+              const dy = above ? -cardH - gap : gap;
+              const total =
+                datum.laptops + datum.phones + datum.tablets;
+              return (
+                <g transform={`translate(${x - 75}, ${y + dy})`}>
+                  <rect
+                    width={150}
+                    height={cardH}
+                    rx={6}
+                    fill="white"
+                    stroke="#e5e7eb"
+                  />
+                  <text x={10} y={16} fontSize={11} fill="#6b7280">
+                    {datum.month} · ${total}
+                  </text>
+                  {STACK_KEYS.map((k, i) => (
+                    <g
+                      key={k}
+                      transform={`translate(10, ${30 + i * 14})`}
+                    >
+                      <rect
+                        width={8}
+                        height={8}
+                        rx={1}
+                        y={-7}
+                        fill={STACK_COLORS[i]}
+                      />
+                      <text x={14} fontSize={11} fill="#111827">
+                        {k}: ${datum[k]}
+                      </text>
+                    </g>
+                  ))}
+                </g>
+              );
+            }}
+          </Tooltip>
+        </ChartContainer>
+      </div>
+    </div>
+
+    <div style={CARD_STYLE}>
+      <header style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "#6b7280" }}>
+          Revenue share by product
+        </div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: "#111827" }}>
+          Donut chart · ${PIE_TOTAL.toLocaleString()} total
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            marginTop: 10,
+            flexWrap: "wrap",
+            fontSize: 11,
+            color: "#374151",
+          }}
+        >
+          {productMix.map((row, i) => (
+            <span
+              key={row.name}
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  background: PIE_COLORS[i],
+                  display: "inline-block",
+                }}
+              />
+              {row.name}
+            </span>
+          ))}
+        </div>
+      </header>
+      <div style={{ height: 320 }}>
+        <PolarChartContainer<ProductMix>
+          data={productMix}
+          valueKey="revenue"
+          innerRadius={70}
+          padding={16}
+        >
+          <Pie<ProductMix>
+            colors={PIE_COLORS}
+            label={({ centroid, datum }) => {
+              const pct = Math.round((datum.revenue / PIE_TOTAL) * 100);
+              if (pct < 8) return null; // hide labels on thin slices
+              return (
+                <text
+                  x={centroid[0]}
+                  y={centroid[1]}
+                  textAnchor="middle"
+                  dy="0.32em"
+                  fontSize={11}
+                  fontWeight={600}
+                  fill="white"
+                >
+                  {pct}%
+                </text>
+              );
+            }}
+          />
+          <PolarTooltip<ProductMix>>
+            {({ datum, cx, cy }) => {
+              const pct = ((datum.revenue / PIE_TOTAL) * 100).toFixed(1);
+              const cardW = 140;
+              const cardH = 54;
+              return (
+                <g pointerEvents="none">
+                  <foreignObject
+                    x={cx - cardW / 2}
+                    y={cy - cardH / 2}
+                    width={cardW}
+                    height={cardH}
+                  >
+                    <div
+                      style={{
+                        width: cardW,
+                        height: cardH,
+                        borderRadius: 6,
+                        border: "1px solid #e5e7eb",
+                        background: "white",
+                        padding: "6px 10px",
+                        boxSizing: "border-box",
+                        fontFamily: "system-ui, sans-serif",
+                      }}
+                    >
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>
+                        {datum.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          color: "#111827",
+                        }}
+                      >
+                        ${datum.revenue.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#6b7280" }}>
+                        {pct}% of total
+                      </div>
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            }}
+          </PolarTooltip>
+        </PolarChartContainer>
       </div>
     </div>
     </div>

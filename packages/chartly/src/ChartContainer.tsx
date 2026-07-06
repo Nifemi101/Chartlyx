@@ -28,6 +28,7 @@ export type ChartContainerProps<
   data: readonly T[];
   margin?: Partial<Margin>;
   minHeight?: number;
+  yDomain?: [number, number];
   children?: React.ReactNode;
 } & XProps<T, XS> & YProps<T, YS>;
 
@@ -36,7 +37,13 @@ export function ChartContainer<
   XS extends ScaleType = "linear",
   YS extends ScaleType = "linear",
 >(props: ChartContainerProps<T, XS, YS>) {
-  const { data, margin: marginProp, minHeight = 300, children } = props;
+  const {
+    data,
+    margin: marginProp,
+    minHeight = 300,
+    yDomain,
+    children,
+  } = props;
   const { ref, width, height } = useResize<HTMLDivElement>();
 
   const margin: Margin = { ...DEFAULT_MARGIN, ...(marginProp ?? {}) };
@@ -52,6 +59,7 @@ export function ChartContainer<
     margin,
     width,
     height,
+    yDomain,
   });
 
   const value: ChartContextValue = {

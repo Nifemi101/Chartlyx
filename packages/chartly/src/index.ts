@@ -6,6 +6,13 @@ export { Line, type LineProps } from "./shapes/Line";
 export { Area, type AreaProps } from "./shapes/Area";
 export { Bar, type BarProps } from "./shapes/Bar";
 export { Scatter, type ScatterProps } from "./shapes/Scatter";
+export { StackedBar, type StackedBarProps } from "./shapes/StackedBar";
+export { StackedArea, type StackedAreaProps } from "./shapes/StackedArea";
+export {
+  DEFAULT_STACK_COLORS,
+  pickColor,
+  stackSum,
+} from "./shapes/stackHelpers";
 export {
   LinearGradient,
   type LinearGradientProps,
@@ -15,6 +22,23 @@ export { XAxis } from "./axes/XAxis";
 export { YAxis } from "./axes/YAxis";
 export { Tooltip, type TooltipProps } from "./interaction/Tooltip";
 export type { TooltipState, TooltipRender } from "./interaction/types";
+export {
+  PolarChartContainer,
+  type PolarChartContainerProps,
+} from "./PolarChartContainer";
+export { Pie, type PieProps } from "./polar/Pie";
+export {
+  PolarTooltip,
+  type PolarTooltipProps,
+} from "./polar/PolarTooltip";
+export { usePolarChartContext } from "./polar/context";
+export type {
+  PolarChartContextValue,
+  PieLabelRender,
+  PieLabelRenderProps,
+  PolarTooltipRender,
+  PolarTooltipState,
+} from "./polar/types";
 export type {
   ShapeLabelRender,
   ShapeLabelRenderProps,

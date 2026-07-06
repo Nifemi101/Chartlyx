@@ -2,6 +2,10 @@ import * as React from "react";
 import { render, type RenderResult } from "@testing-library/react";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { ChartContext, type ChartContextValue } from "../context";
+import {
+  PolarContext,
+} from "../polar/context";
+import type { PolarChartContextValue } from "../polar/types";
 import { DEFAULT_MARGIN } from "../types";
 
 export interface BandRow {
@@ -111,6 +115,56 @@ export function renderInBandChart(
   return render(
     <svg width={value.width} height={value.height} data-testid="chart-svg">
       <ChartContext.Provider value={value}>{children}</ChartContext.Provider>
+    </svg>,
+  );
+}
+
+export interface PolarRow {
+  name: string;
+  value: number;
+}
+
+export const POLAR_DATA: PolarRow[] = [
+  { name: "A", value: 40 },
+  { name: "B", value: 30 },
+  { name: "C", value: 20 },
+  { name: "D", value: 10 },
+];
+
+const POLAR_PADDING = 20;
+
+export function makePolarContext(
+  overrides: Partial<PolarChartContextValue> = {},
+): PolarChartContextValue {
+  const width = WIDTH;
+  const height = HEIGHT;
+  const cx = width / 2;
+  const cy = height / 2;
+  const radius = Math.min(width, height) / 2 - POLAR_PADDING;
+  return {
+    data: POLAR_DATA,
+    valueAccessor: (d) => (d as PolarRow).value,
+    width,
+    height,
+    cx,
+    cy,
+    radius,
+    innerRadius: 0,
+    padding: POLAR_PADDING,
+    activeIndex: null,
+    setActiveIndex: () => {},
+    ...overrides,
+  };
+}
+
+export function renderInPolarChart(
+  children: React.ReactNode,
+  overrides: Partial<PolarChartContextValue> = {},
+): RenderResult {
+  const value = makePolarContext(overrides);
+  return render(
+    <svg width={value.width} height={value.height} data-testid="polar-svg">
+      <PolarContext.Provider value={value}>{children}</PolarContext.Provider>
     </svg>,
   );
 }

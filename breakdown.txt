@@ -115,14 +115,17 @@ This IS the library. Everything we've built lives here.
     │   ├── scales/
     │   │   ├── useChartScales.ts
     │   │   └── types.ts
-    │   ├── shapes/           <-- Phase 3+; expanded 5a-5d
+    │   ├── shapes/           <-- Phase 3+; complete after 5e
     │   │   ├── Line.tsx
     │   │   ├── Area.tsx              <-- Phase 5a
     │   │   ├── LinearGradient.tsx    <-- Phase 5a
     │   │   ├── curves.ts             <-- Phase 5a
     │   │   ├── Bar.tsx               <-- Phase 5b
     │   │   ├── Scatter.tsx           <-- Phase 5c
-    │   │   ├── accessors.ts          <-- NEW in Phase 5d
+    │   │   ├── accessors.ts          <-- Phase 5d
+    │   │   ├── StackedBar.tsx        <-- NEW in Phase 5e
+    │   │   ├── StackedArea.tsx       <-- NEW in Phase 5e
+    │   │   ├── stackHelpers.ts       <-- NEW in Phase 5e
     │   │   └── types.ts
     │   ├── axes/             <-- NEW in Phase 3
     │   │   ├── XAxis.tsx
@@ -132,6 +135,12 @@ This IS the library. Everything we've built lives here.
     │   │   ├── Tooltip.tsx
     │   │   ├── useHoverState.ts
     │   │   └── types.ts
+    │   ├── PolarChartContainer.tsx    <-- NEW in Phase 6
+    │   ├── polar/            <-- NEW in Phase 6 (all non-Cartesian)
+    │   │   ├── context.ts
+    │   │   ├── Pie.tsx
+    │   │   ├── PolarTooltip.tsx
+    │   │   └── types.ts
     │   └── __tests__/
     │       ├── useChartScales.test.ts
     │       ├── Line.test.tsx        <-- Phase 3
@@ -139,7 +148,11 @@ This IS the library. Everything we've built lives here.
     │       ├── Tooltip.test.tsx     <-- Phase 4
     │       ├── Area.test.tsx        <-- Phase 5a
     │       ├── Bar.test.tsx         <-- Phase 5b
-    │       ├── Scatter.test.tsx     <-- NEW in Phase 5c
+    │       ├── Scatter.test.tsx     <-- Phase 5c
+    │       ├── StackedBar.test.tsx  <-- Phase 5e
+    │       ├── StackedArea.test.tsx <-- Phase 5e
+    │       ├── Pie.test.tsx                <-- NEW in Phase 6
+    │       ├── PolarChartContainer.test.tsx <-- NEW in Phase 6
     │       ├── setup.ts             <-- Phase 3: RTL / jest-dom / ResizeObserver stub
     │       └── testUtils.tsx        <-- Phase 3: mock ChartContext helper
     ├── playground/           <-- NEW in Phase 3 (dev-only, NOT published)
@@ -1270,6 +1283,391 @@ breakdown.txt and playground demo — sufficient for now.
 
 
 ------------------------------------------------------------
+4g. PHASE 5e — WHAT WE ACTUALLY DID (STACKED CHARTS)
+------------------------------------------------------------
+
+Final slice of the Cartesian shape family. Shipped two new
+components — `<StackedBar>` and `<StackedArea>` — plus a small
+change to `useChartScales` that unlocks them.
+
+--- Why stacked charts need real math ------------------------
+
+At first glance a stacked bar chart looks like a composed chart:
+several series on the same x-axis. But there's a critical
+difference. In a composed chart each series is drawn INDEPENDENTLY
+from the baseline (y=0). In a stacked chart, each series is drawn
+FROM WHERE THE SERIES BELOW IT ENDED.
+
+Example: monthly revenue by product category
+    { month: "Jan", laptops: 120, phones: 80, tablets: 45 }
+
+Composed rendering (with three <Bar> shapes):
+    laptops bar: from 0 to 120
+    phones bar:  from 0 to 80  (overlaps laptops!)
+    tablets bar: from 0 to 45  (overlaps both!)
+Result: visual chaos.
+
+Stacked rendering:
+    laptops bar: from 0 to 120       (0-120)
+    phones bar:  from 120 to 200     (120-200)
+    tablets bar: from 200 to 245     (200-245)
+Result: one bar per month, split into color-coded sections
+showing total AND per-category contribution.
+
+The math — "add each row's key to the running total, use the
+totals to compute segment tops and bottoms" — is exactly what
+`d3-shape.stack()` does for us. We wrap it.
+
+--- The one thing that needed a REAL change: yDomain ---------
+
+There was one architectural change this phase forced. All prior
+shapes plotted against a y-scale whose domain came from
+`extent(data, yAccessor)`. That works for single-series charts:
+the scale spans from the min to the max of the plotted values.
+
+Stacked charts break this. If you're stacking laptops (max 180),
+phones (max 130), tablets (max 80), the auto-computed domain is
+`[0, 180]` — the max of any SINGLE key. But the visible chart
+needs to reach `[0, 390]` (the max SUM). Otherwise the top of the
+stack renders above the chart's top edge and gets clipped.
+
+Two ways to solve this:
+  1. Consumer sets the y-domain manually.
+  2. Stacked components signal a "domain hint" back to the
+     container so it can auto-compute.
+
+We picked #1 — added a `yDomain?: [number, number]` prop to
+ChartContainer. If set, use it; else keep the current behavior.
+Trade-off: consumers of `<StackedBar>` MUST set yDomain manually.
+Not zero-config, but explicit and simple. #2 would be more
+elegant but requires a two-pass architecture (children signal up,
+then container re-computes). Not worth it yet.
+
+To make the manual computation one line, we exported a
+`stackSum(data, keys)` helper:
+
+    <ChartContainer
+      data={quarter}
+      xKey="month" xScaleType="band"
+      yKey="laptops" yScaleType="linear"
+      yDomain={[0, stackSum(quarter, ["laptops", "phones", "tablets"])]}
+    >
+      <StackedBar keys={["laptops", "phones", "tablets"]} colors={COLORS} />
+    </ChartContainer>
+
+The `yKey="laptops"` is redundant for the stacked bar, but
+required by the container's discriminated-union types — the
+container doesn't know its children are stacked. Documented.
+
+--- StackedBar & StackedArea implementation -------------------
+
+Both components follow the same pattern:
+
+  1. Build a stack generator: `d3stack().keys(props.keys)`
+  2. Run it on data: `series = stackGen(data)` — returns an
+     array-of-arrays. Each outer element is one key's series.
+     Each inner element is `[y0, y1]` in data units, with the
+     original data row attached as `.data`.
+  3. Convert each `[y0, y1]` through `yScale` to get pixels.
+  4. Render:
+       StackedBar: <rect x y width height> per segment
+       StackedArea: <path d> per series
+
+One aesthetic detail on StackedBar: only the TOP segment gets
+rounded corners. If ALL segments were rounded, you'd see
+visible curved gaps between colors within a bar. Real-world
+stacked bars round the whole bar's top (visually = top segment
+only). We do that:
+
+    rx={isTopSegment ? radius : 0}
+
+--- Files we touched in Phase 5e ------------------------------
+
+`src/scales/useChartScales.ts` (MODIFIED)
+  Accepts optional `yDomain: [number, number]`. When passed AND
+  yScaleType is "linear", the yScale uses it directly (still
+  `.nice()`'d). Otherwise unchanged.
+
+`src/ChartContainer.tsx` (MODIFIED)
+  New optional `yDomain` prop on ChartContainerProps; forwarded
+  to `useChartScales`.
+
+`src/shapes/stackHelpers.ts` (NEW)
+  Three exports:
+    - DEFAULT_STACK_COLORS  — 6-color Tailwind palette
+    - stackSum(data, keys)  — max total across all rows
+    - pickColor(colors, i)  — cycles through the palette
+
+`src/shapes/StackedBar.tsx` (NEW)
+  Wraps `d3-shape.stack()`. Top-segment-only radius. Uses
+  `bandwidth()` from the x-scale for width.
+
+`src/shapes/StackedArea.tsx` (NEW)
+  Same as StackedBar but with `d3-shape.area().y0().y1()` on
+  each series' points. Reuses the `resolveCurve` helper from
+  Phase 5a, so `curve="monotone"` works.
+
+`src/__tests__/StackedBar.test.tsx` (NEW)
+  4 tests:
+    - Renders keys.length × data.length rects
+    - Segment heights in one column sum to the total pixel height
+      (proves the stacking math is right)
+    - Colors cycle when fewer colors than keys
+    - Only the top segment has rounded corners
+      (guards against the "all rounded = visual gaps" regression)
+
+`src/__tests__/StackedArea.test.tsx` (NEW)
+  3 tests:
+    - One <path> per key
+    - All paths are closed (end with Z)
+    - Curve prop propagates to path (monotone emits C bezier)
+
+`src/__tests__/useChartScales.test.ts` (EXTENDED)
+  1 new test: explicit `yDomain` bypasses extent inference.
+
+`src/index.ts` (MODIFIED)
+  Added StackedBar, StackedArea, StackedBarProps, StackedAreaProps,
+  DEFAULT_STACK_COLORS, pickColor, stackSum to exports.
+
+`playground/App.tsx` (EXTENDED)
+  Added a fifth card at the bottom: a stacked bar chart of
+  quarterly sales by product category (laptops/phones/tablets).
+  Includes an inline color-chip legend above the chart and a
+  tooltip that shows the total plus per-category breakdown with
+  matching color swatches. First playground demo with a legend
+  since Phase 8's proper Legend component isn't in yet — this
+  is the "how you build it yourself for now" pattern.
+
+Total test count: 43 (up from 35 in Phase 5d).
+
+--- Phase 5 status ---
+
+With 5e landed, all 6 Cartesian shape types from the original
+CLAUDE.md roadmap are shipped:
+    Line, Area, Bar, Scatter, Stacked Bar, Stacked Area
+plus one bonus (LinearGradient) and one composition mechanic
+(per-shape y accessor).
+
+7 of the 9 chart types in the roadmap total (only Pie and Radar
+remaining, both in the Polar family). Next milestone: Phase 6.
+
+
+------------------------------------------------------------
+4h. PHASE 6 — WHAT WE ACTUALLY DID (POLAR + PIE)
+------------------------------------------------------------
+
+First non-Cartesian chart family. Everything before Phase 6
+assumed (x, y) → (pixel, pixel) plotting on a rectangular plot
+area. Pie charts don't fit that model. They compute:
+  - ANGULAR sweeps around a center point (each slice's start
+    and end angle)
+  - RADIAL distances from that center (inner radius for donuts,
+    outer radius for the visible edge)
+
+Data isn't x/y — it's "value per row", where the ANGULAR sweep
+of each slice is proportional to that value's share of the total.
+
+--- The architectural decision: separate containers ----------
+
+Locked back in CLAUDE.md's initial planning: `ChartContainer`
+handles Cartesian; a new `PolarChartContainer` handles polar.
+NO union-typed shared context. Two reasons:
+
+  1. The context shapes are fundamentally different. Cartesian
+     needs xScale/yScale/xAccessor/yAccessor. Polar needs
+     cx/cy/radius/innerRadius/valueAccessor. Trying to unify
+     forces every child component to narrow a discriminated
+     union just to read basic props.
+  2. Cross-family shape mixing (Pie inside a Cartesian
+     container?) doesn't make sense. Two separate containers
+     make the "wrong shape in wrong container" case a compile
+     error, not a runtime bug.
+
+So we shipped:
+  - `<PolarChartContainer>` — the new component, alongside the
+    existing Cartesian `<ChartContainer>`
+  - A new context (`PolarContext`) with its own hook
+    (`usePolarChartContext`)
+  - `<Pie>` — reads polar context
+  - `<PolarTooltip>` — reads polar context
+
+Zero code touched in the Cartesian pipeline. Fully additive.
+
+--- What the polar container gives you -----------------------
+
+`<PolarChartContainer>` measures its DOM size (via the same
+`useResize` hook the Cartesian container uses — reused, not
+duplicated), and derives three things:
+
+    cx = width / 2
+    cy = height / 2
+    radius = min(width, height) / 2 - padding
+
+That's it. No scales in the classical sense. Consumer only
+supplies data + a value accessor.
+
+Consumer surface:
+
+    <PolarChartContainer
+      data={products}
+      valueKey="revenue"      // OR value={(d) => d.revenue}
+      innerRadius={70}        // 0 = pie, >0 = donut
+      padding={16}            // default 20; gap from card edge
+    >
+      <Pie colors={COLORS} label={...} />
+      <PolarTooltip>{({ datum }) => <g>...</g>}</PolarTooltip>
+    </PolarChartContainer>
+
+The `valueKey` prop is typed as `KeysOfType<T, number>` — same
+utility from Phase 2 that powers per-shape yKey overrides. If
+you pass a string-valued key, it's a compile error.
+
+--- How Pie draws ------------------------------------------
+
+We use two functions from d3-shape:
+
+  1. `pie().value(fn)` — takes an array of data, returns arc
+     "data" objects with `.startAngle` and `.endAngle` fields
+     already computed as radians. Handles the "share of total"
+     math internally.
+  2. `arc().innerRadius(r0).outerRadius(r1)` — converts an arc
+     data object into an SVG path `d` string.
+
+Composed together:
+
+    const pieGen = d3.pie().value(v => valueAccessor(v)).sort(null);
+    const arcs = pieGen(data);                      // sweep angles
+    const arcGen = d3.arc()
+      .innerRadius(innerRadius)
+      .outerRadius(radius);
+    arcs.forEach(a => arcGen(a));                    // "d" strings
+
+`.sort(null)` is important — by default d3.pie() sorts slices by
+value (largest first). We want the visual order to match the
+data order the consumer provided.
+
+The `<Pie>` component wraps each arc in a `<path>` with
+`onMouseEnter` / `onMouseLeave` handlers that push the active
+slice index into the polar context. That drives the tooltip.
+
+--- The centroid label pattern -------------------------------
+
+Every slice has a "centroid" — the pixel point at the visual
+middle of the wedge. d3.arc().centroid(arc) returns it as
+`[x, y]`. We pass it to consumers through the `label` render-prop:
+
+    <Pie label={({ centroid, datum, index, cx, cy, startAngle,
+                    endAngle }) => (
+      <text x={centroid[0]} y={centroid[1]} textAnchor="middle" dy="0.32em">
+        {formatSlice(datum)}
+      </text>
+    )} />
+
+Small subtlety: the label renders INSIDE the `<g transform=
+"translate(cx, cy)">` wrapper that already positions the Pie at
+the container's center. So the centroid you get in the callback
+is RELATIVE to the pie center, not absolute SVG coords. That's
+usually what consumers want (offsets from center are more
+intuitive than absolute pixel positions), but breakdown.txt is
+the right place to document it.
+
+--- Slice hover → tooltip via context ------------------------
+
+Cartesian's `<Tooltip>` uses d3-array's bisector to find the
+nearest data point to a mouse position. Polar doesn't need that —
+each slice IS a hit target. So we took a simpler approach:
+
+  1. `PolarChartContainer` keeps `activeIndex` state.
+  2. `<Pie>` binds onMouseEnter/onMouseLeave to each slice
+     `<path>`, calling `setActiveIndex(i)` / `setActiveIndex(null)`.
+  3. `<PolarTooltip>` reads `activeIndex`; if null it renders
+     nothing, otherwise it calls the children function with
+     `{ datum, index, cx, cy, radius, innerRadius }`.
+
+The consumer's render function positions the tooltip. It can
+center in the pie's middle (using cx/cy), place beside the
+active slice, or something else entirely. The playground uses a
+centered `<foreignObject>` card because our first pie has a
+donut hole that gives an obvious place for the tooltip to sit.
+
+--- Files we created / touched in Phase 6 --------------------
+
+`src/polar/types.ts` (NEW)
+  Shared types: PolarChartContextValue, PieLabelRender,
+  PolarTooltipRender.
+
+`src/polar/context.ts` (NEW)
+  PolarContext + generic usePolarChartContext hook. Same
+  pattern as Cartesian's useChartContext with the type-erasure
+  cast trick at the read site.
+
+`src/PolarChartContainer.tsx` (NEW)
+  Top-level component. Owns activeIndex state, computes
+  cx/cy/radius, uses `useResize`, renders `<div><svg>...</svg></div>`
+  with a `PolarContext.Provider` inside.
+
+`src/polar/Pie.tsx` (NEW)
+  Wraps d3.pie() and d3.arc(). Emits per-slice hover handlers
+  that update polar context.
+
+`src/polar/PolarTooltip.tsx` (NEW)
+  Reads activeIndex from context; renders nothing when null;
+  calls the children function with active-slice details.
+
+`src/__tests__/testUtils.tsx` (EXTENDED)
+  Added `makePolarContext()` and `renderInPolarChart()` mirrors
+  of the existing linear/band helpers.
+
+`src/__tests__/Pie.test.tsx` (NEW)
+  5 tests: renders one path per slice; path uses arc command;
+  innerRadius>0 produces donut with two arc commands per slice;
+  colors cycle; label render-prop fires with centroid+datum.
+
+`src/__tests__/PolarChartContainer.test.tsx` (NEW)
+  2 tests: renders div+svg wrapper; SSR-safe (skips Provider
+  when dimensions are 0 — jsdom's ResizeObserver stub returns 0).
+
+`src/index.ts` (MODIFIED)
+  Added exports for PolarChartContainer, Pie, PolarTooltip,
+  usePolarChartContext, and 5 new type names.
+
+`playground/App.tsx` (EXTENDED)
+  Added a sixth card at the bottom: a donut chart showing
+  revenue share by product category (Laptops/Phones/Tablets/
+  Watches/Accessories). Slices show % labels at centroid;
+  thin slices (< 8%) suppress their label. Hovering a slice
+  reveals a centered tooltip card with name, dollar amount,
+  and precise % share. Manual color-chip legend above the
+  chart (same pattern as StackedBar).
+
+Total test count: 50 (up from 43 in Phase 5e).
+
+--- One design detail: labels use SVG, tooltip uses HTML ------
+
+The pie's centroid label is plain SVG `<text>` inside the pie's
+`<g>` wrapper. The tooltip, on the other hand, uses
+`<foreignObject>` to embed an HTML card. Why the mix?
+
+  - Labels need to sit AT slice centroids inside the pie's
+    coordinate system. SVG is the natural fit.
+  - Tooltips typically want richer content (multiple lines,
+    colored dots, mini bar charts) that HTML+CSS handle better
+    than SVG text. `<foreignObject>` is the SVG element that
+    "embeds" a chunk of HTML into an SVG position.
+
+Both are valid patterns. Consumers can use either in either
+place. Playground shows both to make the choice tangible.
+
+--- Phase 6 status ---
+
+8 of the 9 chart types shipped:
+  Line, Area, Bar, Scatter, Stacked Bar, Stacked Area, Pie,
+  and Composed (via per-shape y accessor).
+Only Radar remains — Phase 7. Uses this Phase's polar
+container.
+
+
+------------------------------------------------------------
 5. CURRENT STATE — WHAT WORKS TODAY
 ------------------------------------------------------------
 
@@ -1277,15 +1675,16 @@ From `packages/chartly/` you can run:
 
   npm run typecheck        — TypeScript type check, no compilation
   npm run build            — Produces dist/ (dual ESM + CJS + .d.ts)
-  npm test                 — Runs vitest (35 tests, all passing)
+  npm test                 — Runs vitest (50 tests, all passing)
   npm run dev              — Rebuilds library on save (tsup --watch)
   npm run dev:playground   — Boots the Vite playground in the browser
 
-Build output size (as of end of Phase 5d):
-  ESM  dist/index.js   16.20 KB  (was 15.68 KB after Phase 5c)
-  CJS  dist/index.cjs  17.36 KB  (was 16.83 KB after Phase 5c)
-  d.ts               ~5.37 KB
-  (Small +0.5 KB bump for the shared accessor helper.)
+Build output size (as of end of Phase 6):
+  ESM  dist/index.js   21.89 KB  (was 19.09 KB after Phase 5e)
+  CJS  dist/index.cjs  23.46 KB  (was 20.43 KB after Phase 5e)
+  d.ts               ~8.44 KB
+  (Bump from PolarChartContainer + Pie + PolarTooltip + polar
+  context + d3-shape's pie/arc generators.)
   D3 is NOT bundled — external via tsup's default rule for direct
   deps. React is externalized via tsup config.
 
@@ -1301,9 +1700,19 @@ The public API right now (things exported from `src/index.ts`):
     <LinearGradient />       SVG defs helper     (Phase 5a)
     <Bar />                  band-scale bar shape (Phase 5b)
     <Scatter />              circles per data point (Phase 5c)
+    <StackedBar />           stacked bar chart   (Phase 5e)
+    <StackedArea />          stacked area chart  (Phase 5e)
+    <PolarChartContainer />  polar chart container (Phase 6)
+    <Pie />                  pie / donut chart   (Phase 6)
+    <PolarTooltip />         slice-hover tooltip (Phase 6)
 
-  Hook:
+  Helpers:
+    stackSum(data, keys)     max stacked total   (Phase 5e)
+    DEFAULT_STACK_COLORS     6-color palette     (Phase 5e)
+
+  Hooks:
     useChartContext<T>()     read scales/dims/accessors in children
+    usePolarChartContext<T>() read cx/cy/radius/active slice for polar
 
   Types:
     ChartContainerProps      generic prop shape with discriminated union
@@ -1316,6 +1725,16 @@ The public API right now (things exported from `src/index.ts`):
     ScatterProps<T>          generic Scatter props               (Phase 5c)
     YOverride<T>             per-shape y-accessor override       (Phase 5d)
                               — extends all shape props
+    StackedBarProps<T>       generic stacked-bar props           (Phase 5e)
+    StackedAreaProps<T>      generic stacked-area props          (Phase 5e)
+    PolarChartContainerProps<T>  polar container props          (Phase 6)
+    PolarChartContextValue   polar context shape                 (Phase 6)
+    PieProps<T>              generic Pie props                   (Phase 6)
+    PieLabelRender<T>        pie label render-prop function      (Phase 6)
+    PieLabelRenderProps<T>   { centroid, startAngle, ... }       (Phase 6)
+    PolarTooltipProps<T>     PolarTooltip render children        (Phase 6)
+    PolarTooltipState<T>     { datum, cx, cy, radius, ... }      (Phase 6)
+    PolarTooltipRender<T>    render function type                (Phase 6)
     AxisProps                shared XAxis/YAxis prop shape
     TooltipProps<T>          Tooltip props (typed datum)         (Phase 4)
     TooltipState<T>          { x, y, datum, index } passed to    (Phase 4)
@@ -1394,11 +1813,18 @@ Refer to CLAUDE.md for the master list. In short:
                  Same-data flavor only (both series share `data`,
                  x-scale, and y-scale). No new component — every
                  shape now takes optional `y`/`yKey`.
-  Phase 5e NEXT  Stacked variants. Uses d3-shape's stack() transform
-                 to reshape series-of-series data into stacked
-                 coordinates. Own dedicated components:
-                 <StackedBar>, <StackedArea>. Likely also brings in
-                 a small legend concern.
+  Phase 5e DONE  Stacked variants: <StackedBar> + <StackedArea>.
+                 Wraps d3-shape.stack(). Added `yDomain` prop to
+                 ChartContainer + `stackSum` helper. Phase 5
+                 complete — all 6 Cartesian shape types now
+                 shipped.
+  Phase 6  DONE  Polar architecture: new PolarChartContainer +
+                 Pie/Donut + PolarTooltip. First non-Cartesian
+                 family. Fully separate context; zero changes to
+                 Cartesian code path.
+  Phase 7  NEXT  Radar chart. Reuses this phase's PolarChart-
+                 Container. Adds one new component and probably
+                 introduces angular + radial scale primitives.
   Phase 6        Polar architecture: PolarChartContainer + Pie
                  (extracts useResize into its shared final form)
   Phase 7        Radar chart (reuses polar container)
@@ -1512,6 +1938,46 @@ KEYSOFTYPE     — a TypeScript utility (in src/types.ts) that,
                   match V. We use `KeysOfType<T, number>` to
                   constrain `yKey` to numeric fields only, so
                   autocomplete never shows string-valued keys.
+STACKED CHART  — a chart where multiple series are drawn on top of
+                  each other (accumulated), so each stack shows both
+                  the total AND per-category contribution. Different
+                  from a COMPOSED chart, where series are independent
+                  and can overlap.
+STACK          — d3-shape's transform that takes a flat table
+  TRANSFORM      (rows × columns) and produces per-row [y0, y1]
+                  tuples per key, computing the running total for
+                  us. Chartly wraps it in `<StackedBar>` and
+                  `<StackedArea>`.
+Y-DOMAIN       — the range of data values a y-scale spans. Normally
+                  auto-computed from `extent(data, yAccessor)`. For
+                  stacked charts, this default underreports the max
+                  (any single series max, not the sum), so
+                  ChartContainer accepts a `yDomain` override.
+                  Use `stackSum(data, keys)` to compute it in one
+                  line.
+POLAR CHART    — any chart drawn using angles and radii instead of
+                  Cartesian x/y coordinates. Pie, donut, and radar
+                  are all polar. Chartly uses a separate
+                  `<PolarChartContainer>` for these; the Cartesian
+                  container's scale system doesn't apply.
+CENTROID       — the visual "middle" of a shape. For a pie slice
+                  (an arc-shaped wedge), the centroid is the point
+                  that visually centers a label inside the wedge.
+                  d3's arc().centroid(arc) computes it as [x, y].
+                  Chartly passes this to the Pie `label` render-prop.
+DONUT          — a pie chart with a hole in the middle. Achieved by
+                  setting an inner radius greater than 0. Same
+                  component as pie (`<Pie>`) with the `innerRadius`
+                  prop on the container.
+ARC / SWEEP    — an arc-shaped wedge of a circle. In SVG paths,
+                  drawn with the "A" command. d3-shape's arc()
+                  function turns a start/end angle + inner/outer
+                  radius pair into that "A" command string.
+FOREIGNOBJECT  — an SVG element that lets you embed a chunk of HTML
+                  inside an SVG at a specific position. We use it
+                  in the pie tooltip because HTML+CSS handles multi-
+                  line styled content (borders, padding, rounded
+                  corners) more cleanly than SVG `<text>`.
 
 
 
