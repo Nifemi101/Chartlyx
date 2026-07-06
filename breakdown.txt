@@ -1,0 +1,1518 @@
+CHARTLY — WHAT WE'VE BUILT SO FAR
+==================================
+
+This file is a plain-English walkthrough of the project. Read it top
+to bottom; each section builds on the last.
+
+------------------------------------------------------------
+0. WHAT IS CHARTLY?
+------------------------------------------------------------
+
+Chartly is a REACT LIBRARY — code that OTHER developers install into
+THEIR React apps. It's not a website. It's not an app you run. When
+finished, someone will do:
+
+    npm install chartly
+
+    import { LineChart, Line } from "chartly";
+
+...in their own project, and use the chart components we've written.
+
+That distinction — "library, not app" — drives most of the weird
+decisions in this project. A library has to:
+
+  - Publish to npm as a package
+  - Ship in TWO formats (ESM and CJS — explained below) so both
+    modern bundlers and older Node.js can use it
+  - Ship .d.ts TypeScript type files so consumers get autocomplete
+  - Externalize React (not bundle it) — the consumer already has React
+  - Be tiny — nobody wants a charting lib that adds 500KB
+
+A React APP does none of that. It bundles everything, ships to a
+website, and never gets imported.
+
+------------------------------------------------------------
+1. WHY IS `node_modules/chartly` A SYMLINK?
+------------------------------------------------------------
+
+You noticed `node_modules/chartly` exists. That's not a mistake.
+
+We're using an npm feature called WORKSPACES. It lets one repository
+hold multiple packages. Look at the folder layout:
+
+    chartly/
+    ├── package.json           <-- the "root" — declares workspaces
+    ├── .gitignore             <-- files git should ignore (see below)
+    ├── breakdown.txt          <-- this file
+    ├── .vscode/
+    │   └── settings.json      <-- workspace TypeScript version pin
+    ├── node_modules/
+    │   └── chartly -> ../packages/chartly    <-- SYMLINK (shortcut)
+    └── packages/
+        ├── chartly/           <-- the actual library
+        └── docs/              <-- (empty for now — Phase 9)
+
+  What .gitignore does: git normally tracks every file in the repo,
+  which is bad for auto-generated stuff like `node_modules/` (millions
+  of files, hundreds of MB, reproducible from package.json) and `dist/`
+  (the built output, rebuildable from src). .gitignore is a plain-text
+  list of paths git will pretend don't exist. Ours excludes:
+
+    - node_modules/            (deps — reinstall with npm install)
+    - dist/, build/, out/      (auto-generated builds)
+    - coverage/                (test coverage reports)
+    - *.log                    (npm/yarn debug logs)
+    - .env, .env.*             (secrets — NEVER commit)
+    - .DS_Store, Thumbs.db     (OS-generated junk)
+    - .idea/, .vscode/*        (editor prefs — with an exception:
+                                 we DO commit .vscode/settings.json
+                                 because it pins the workspace TS
+                                 version for everyone; personal
+                                 launch configs etc. stay local)
+    - .cache/, .vite/          (dev-tool caches)
+    - image.png, image-*.png   (reference screenshots you drop in
+                                 for design chats — useful locally,
+                                 don't ship to git)
+
+  The `!` prefix in a gitignore is a re-include: `!.env.example` means
+  "even though .env* is ignored, DO track .env.example". Useful for
+  template files that document what env vars a real .env needs.
+
+When you run `npm install` in the root, npm looks at the root's
+`workspaces` field:
+
+    "workspaces": ["packages/*"]
+
+...and creates a symbolic link inside `node_modules/` for each
+package in `packages/`. So `node_modules/chartly` is literally a
+shortcut that points back at `packages/chartly`.
+
+WHY WE WANT THIS: eventually `packages/docs/` will be a demo site
+that IMPORTS chartly (like a real user would). Because of the
+symlink, when docs does `import { LineChart } from "chartly"`, it
+finds our in-development version — no publishing needed.
+
+You can safely ignore `node_modules/chartly`. It's just plumbing.
+
+------------------------------------------------------------
+2. THE FOLDER YOU ACTUALLY CARE ABOUT: `packages/chartly/`
+------------------------------------------------------------
+
+This IS the library. Everything we've built lives here.
+
+    packages/chartly/
+    ├── package.json          <-- library manifest (name, version, deps)
+    ├── tsconfig.json         <-- TypeScript compiler settings
+    ├── tsup.config.ts        <-- bundler settings
+    ├── vitest.config.ts      <-- test runner settings
+    ├── src/                  <-- ALL SOURCE CODE lives here
+    │   ├── index.ts          <-- the public entry point
+    │   ├── ChartContainer.tsx
+    │   ├── context.ts
+    │   ├── types.ts
+    │   ├── hooks/
+    │   │   └── useResize.ts
+    │   ├── scales/
+    │   │   ├── useChartScales.ts
+    │   │   └── types.ts
+    │   ├── shapes/           <-- Phase 3+; expanded 5a-5d
+    │   │   ├── Line.tsx
+    │   │   ├── Area.tsx              <-- Phase 5a
+    │   │   ├── LinearGradient.tsx    <-- Phase 5a
+    │   │   ├── curves.ts             <-- Phase 5a
+    │   │   ├── Bar.tsx               <-- Phase 5b
+    │   │   ├── Scatter.tsx           <-- Phase 5c
+    │   │   ├── accessors.ts          <-- NEW in Phase 5d
+    │   │   └── types.ts
+    │   ├── axes/             <-- NEW in Phase 3
+    │   │   ├── XAxis.tsx
+    │   │   ├── YAxis.tsx
+    │   │   └── types.ts
+    │   ├── interaction/      <-- NEW in Phase 4
+    │   │   ├── Tooltip.tsx
+    │   │   ├── useHoverState.ts
+    │   │   └── types.ts
+    │   └── __tests__/
+    │       ├── useChartScales.test.ts
+    │       ├── Line.test.tsx        <-- Phase 3
+    │       ├── Axes.test.tsx        <-- Phase 3
+    │       ├── Tooltip.test.tsx     <-- Phase 4
+    │       ├── Area.test.tsx        <-- Phase 5a
+    │       ├── Bar.test.tsx         <-- Phase 5b
+    │       ├── Scatter.test.tsx     <-- NEW in Phase 5c
+    │       ├── setup.ts             <-- Phase 3: RTL / jest-dom / ResizeObserver stub
+    │       └── testUtils.tsx        <-- Phase 3: mock ChartContext helper
+    ├── playground/           <-- NEW in Phase 3 (dev-only, NOT published)
+    │   ├── index.html
+    │   ├── main.tsx
+    │   ├── App.tsx
+    │   └── vite.config.ts
+    └── dist/                 <-- BUILT OUTPUT (auto-generated)
+        ├── index.js          <-- ESM bundle
+        ├── index.cjs         <-- CommonJS bundle
+        ├── index.d.ts        <-- TypeScript types (ESM)
+        └── index.d.cts       <-- TypeScript types (CJS)
+
+Rule of thumb: you WRITE in `src/`, tsup BUILDS to `dist/`, npm
+PUBLISHES `dist/`.
+
+
+------------------------------------------------------------
+3. PHASE 1 — WHAT WE ACTUALLY DID (SCAFFOLDING)
+------------------------------------------------------------
+
+Phase 1 built the "workshop" — no chart code yet, just the pipeline
+that lets us write TypeScript and produce a publishable npm package.
+
+Six files were created/rewritten. Here's what each one does and WHY
+it exists:
+
+--- `tsconfig.json` ------------------------------------------
+TypeScript's config file. Tells the compiler:
+  - "target": "ES2020"     — output modern JS (last-5-years browsers)
+  - "jsx": "react-jsx"     — use the modern JSX transform (no need
+                             for `import React from "react"` in every file)
+  - "strict": true         — turn on all safety checks
+  - "noEmit": true         — DO NOT actually output files. tsup will.
+                             tsc is just here to CHECK the types.
+  - "moduleResolution": "Bundler"  — resolve imports the way modern
+                             bundlers (tsup, vite) do
+  - "ignoreDeprecations": "6.0"  — silence a warning about `baseUrl`
+                             that tsup's DTS builder triggers
+
+--- `tsup.config.ts` ----------------------------------------
+tsup is a bundler — it takes our TypeScript source and produces
+distributable JavaScript. Config says:
+  - entry: "src/index.ts"   — start from our public entry
+  - format: ["cjs", "esm"]  — output BOTH formats (see next section)
+  - dts: true               — also generate .d.ts type files
+  - external: ["react", "react-dom"]  — DO NOT bundle React
+
+  Why external React? If we bundled it, every consumer's app would
+  have TWO copies of React — ours and theirs. React breaks if there
+  are two copies (hooks fail, hydration errors). So we require the
+  consumer to provide React, and just import from it.
+
+--- `package.json` -------------------------------------------
+This is the file npm reads when someone installs "chartly". Key
+fields we set:
+
+  "type": "module"    — this package is ESM by default
+  "main":    "./dist/index.cjs"  — if a CJS user requires "chartly",
+                                    give them this
+  "module":  "./dist/index.js"   — if an ESM bundler imports it, give
+                                    them this
+  "types":   "./dist/index.d.ts" — TypeScript, use these type defs
+  "exports": { ... }             — modern per-condition routing (the
+                                    "exports" field is more precise
+                                    than main/module — it lets us
+                                    map different files per situation:
+                                    import vs require, types vs code)
+  "files": ["dist"]  — only publish the `dist/` folder to npm.
+                       Nobody wants our source, only the built output.
+  "sideEffects": false  — tells bundlers "our code has no top-level
+                          side effects, feel free to drop unused
+                          exports" (enables tree-shaking)
+  "peerDependencies": { react }  — see React-external explanation above
+
+  Scripts:
+    "build"     : "tsup"            — produces dist/
+    "dev"       : "tsup --watch"    — rebuilds on file change
+    "typecheck" : "tsc --noEmit"    — check types without emitting
+    "test"      : "vitest run"      — run tests once
+
+--- `src/index.ts` -------------------------------------------
+The PUBLIC ENTRY POINT. Only things exported from here are visible
+to library consumers. It's the "table of contents" for what users
+can import.
+
+--- `vitest.config.ts` --------------------------------------
+Test runner setup. Uses `jsdom` (a fake browser DOM that runs in
+Node) so React component tests can pretend they're in a browser.
+
+
+------------------------------------------------------------
+3a. QUICK DIGRESSION: ESM vs CJS (WHY WE SHIP BOTH)
+------------------------------------------------------------
+
+There are two ways to write module code in JavaScript, and both are
+in the wild:
+
+  ESM (modern, since ~2020):
+      import { foo } from "bar";
+      export const baz = ...;
+
+  CJS (older, since Node ~2010):
+      const { foo } = require("bar");
+      module.exports.baz = ...;
+
+Modern apps (Next.js, Vite, ESM-native Node) use ESM.
+Older Node.js scripts and some tooling still use CJS.
+
+If we only shipped ESM, CJS users would get errors. If we only
+shipped CJS, we'd miss out on tree-shaking optimizations for modern
+bundlers. So we ship BOTH — that's what `format: ["cjs", "esm"]`
+in the tsup config does. The `exports` field in package.json
+routes each consumer to the right file.
+
+That's what "dual-format package" means. It's the standard for
+modern npm libraries.
+
+
+------------------------------------------------------------
+4. PHASE 2 — WHAT WE ACTUALLY DID (SCALE FOUNDATION)
+------------------------------------------------------------
+
+Phase 1 built the workshop; Phase 2 started building the actual
+library. But we deliberately built NO VISUALS yet — just the
+math and structure. Here's the reasoning: every chart type
+we'll build later (Line, Bar, Area, etc.) needs the same three
+things:
+
+  1. A way to know how big it is (responsive sizing)
+  2. A way to convert data values into pixel positions (scales)
+  3. A way to share those with child components (context)
+
+If we build those three things ONCE, correctly, every chart in
+Phases 3–5 just plugs into them. If we build them wrong, we redo
+9 chart types. So Phase 2 is boring but load-bearing.
+
+--- What "scale" means ---------------------------------------
+A "scale" is the D3 term for a function that maps DATA to PIXELS.
+Example: your data has values from 0 to 100, but your chart is
+400 pixels wide. A linear scale takes value 0 -> pixel 0, value
+100 -> pixel 400, value 50 -> pixel 200. That's it.
+
+Three scale types matter for Cartesian charts:
+  - linear:  numbers   (revenue, temperature, counts)
+  - time:    dates     (timestamps for time series)
+  - band:    categories (product names, days of week)
+
+D3 provides these; we just wrap them nicely.
+
+--- Files we created in Phase 2 ------------------------------
+
+`src/types.ts`
+  Public TypeScript types shared everywhere:
+    - Margin           — { top, right, bottom, left } object
+    - DEFAULT_MARGIN   — sensible defaults
+    - ScaleType        — "linear" | "time" | "band"
+    - ScaleInput<S>    — magic type: given a scale type, tell me
+                          what data values it accepts. E.g. if S is
+                          "time", ScaleInput<S> is Date.
+    - KeysOfType<T, V> — magic type: given an object type T and a
+                          value type V, list the keys of T that have
+                          values of type V. Powers the `xKey` prop.
+
+`src/scales/types.ts`
+  Internal aliases: XScale/YScale = union of d3-scale's return types.
+
+`src/hooks/useResize.ts`
+  A custom React hook that uses ResizeObserver (browser API) to
+  measure the current size of a DOM element. Returns { ref, width,
+  height }. The consumer attaches `ref` to a div; the hook watches
+  that div and updates width/height whenever it resizes.
+
+  Why: we decided NO fixed width/height props. Instead the chart
+  fills its parent. This hook is HOW we do that.
+
+`src/scales/useChartScales.ts`
+  The heart of the phase. Takes:
+    - data
+    - accessor functions (how to extract x/y values from each row)
+    - scale types
+    - margin
+    - current width/height
+
+  Returns:
+    - xScale and yScale (D3 scale functions ready to call)
+    - innerWidth/innerHeight (the drawable area, minus margins)
+
+  Critical detail: the pixel RANGE bakes in margin.
+    x range: [margin.left, width - margin.right]
+    y range: [height - margin.bottom, margin.top]   <-- INVERTED
+
+  Why inverted for y? Because in SVG, y=0 is at the TOP of the
+  screen and increases downward. But charts show high values at the
+  top. So we flip the range to compensate. Every chart gets this
+  for free from the scale — no per-chart math.
+
+`src/context.ts`
+  React Context is a way to share values with all descendants
+  without passing props at every level. We create a `ChartContext`
+  holding scales/margins/dimensions, and a `useChartContext()` hook
+  for children to read it.
+
+  Why: our architecture says "context + hooks for prop sharing".
+  When someone writes <ChartContainer><Line /></ChartContainer>,
+  the Line component doesn't receive scales as a prop — it grabs
+  them out of context via useChartContext(). Cleaner API.
+
+`src/ChartContainer.tsx`
+  The React component consumers will use. Roughly:
+
+    1. Get the container's size via useResize()
+    2. Fill in default margin
+    3. Turn xKey/x and yKey/y props into accessor functions
+    4. Call useChartScales() to build scales
+    5. Render <div><svg>{children}</svg></div>
+    6. Provide the scales via ChartContext to whatever children
+       the user passed in
+
+  The tricky bit is the prop types. We allow two ways to say
+  "which field is x?":
+
+    <ChartContainer xKey="date" ... />         // by field name
+    <ChartContainer x={(d) => d.date} ... />   // by function
+
+  These are combined into a discriminated union in TypeScript so
+  you can use EITHER — but not both — and the type system checks
+  that xKey (if used) actually points at a value type matching the
+  chosen scale (e.g. "time" scale requires a Date value).
+
+`src/__tests__/useChartScales.test.ts`
+  Six tests, all passing. The most important is the y-inversion
+  test — it locks in the "margin baked into range" decision, so
+  a future refactor can't accidentally break it without a test
+  failing.
+
+
+------------------------------------------------------------
+4a. PHASE 3 — WHAT WE ACTUALLY DID (FIRST REAL CHART)
+------------------------------------------------------------
+
+Phase 3 is where charts start LOOKING like charts. We built three
+components: `<Line>`, `<XAxis>`, `<YAxis>`. Together with the
+container from Phase 2, you can now render a real line chart.
+
+Why THIS was the phase that "validates the architecture": three
+things had to work end-to-end without duct tape:
+
+  1. A visual component (Line) reads scales from context and
+     produces correct SVG geometry.
+  2. Axis components independently read the same context and
+     produce ticks that line up with the data.
+  3. When the container resizes, both Line and axes re-render in
+     sync (proves context + ResizeObserver + scales all wire up
+     correctly).
+
+If any of those had needed a hack, we'd have redone Phase 2.
+Everything worked. So the pattern is now the template for Phases
+4–5.
+
+--- The signature customization pattern: RENDER-PROP LABELS ---
+
+Every chart type will eventually let consumers put custom labels
+on data points ("$270" above the last dot, for example). There
+are many ways to design this API. Options we considered:
+
+  (a) label={{ show: true, format: "%d" }}     -- config object
+  (b) labelKey="revenue"                       -- a data field name
+  (c) label={(props) => <text>...</text>}      -- a function that
+                                                  returns JSX
+
+We picked (c) — the "render prop" pattern. A render prop is just
+a function you pass as a prop, and the component calls it and
+renders whatever JSX it returns. Why (c) wins:
+
+  - Full flexibility: consumers can style, filter, or hide labels
+    per data point by returning null.
+  - Fully typed: the function receives {x, y, datum, index} where
+    `datum` is your original data row (typed via generics), so
+    autocomplete works on your data fields.
+  - No custom mini-language: it's just React, so consumers who
+    know React already know how to use it.
+
+The Line component takes an optional `label` prop:
+
+    <Line<Row>
+      label={({ x, y, datum, index }) =>
+        index === lastIndex
+          ? <text x={x} y={y - 8}>${datum.revenue}</text>
+          : null
+      }
+    />
+
+That signature (typed { x, y, datum, index } → ReactNode) is now
+the standard for every future shape: Bar, Area, Scatter, etc.
+
+--- Files we created in Phase 3 ------------------------------
+
+`src/shapes/types.ts`
+  Just two shared types:
+    - ShapeLabelRenderProps<T>  — { x, y, datum: T, index }
+    - ShapeLabelRender<T>       — (props) => ReactNode
+  Every shape's `label` prop uses these.
+
+`src/shapes/Line.tsx`
+  Uses `d3-shape`'s `line()` generator to turn data points into
+  an SVG `<path>` string. Steps inside the component:
+    1. Read data + scales + accessors from context via
+       useChartContext().
+    2. For each data row, compute a pixel {x, y} by running the
+       accessor then the scale (e.g. `xScale(xAccessor(row))`).
+    3. Feed those points into `d3.line().x(...).y(...)`, which
+       returns a string like "M100,200L120,180L140,190".
+    4. Render that as `<path d={...} stroke=... fill="none" />`.
+    5. If the `label` prop is set, call it for each point and
+       render the returned JSX.
+
+  The `.defined()` filter on the d3 line drops any NaN points
+  (safety for undefined data), so we never emit a broken path.
+
+`src/axes/types.ts`
+  Shared axis types:
+    - TickValue           — number | Date | string (all scale outputs)
+    - TickFormatter<V>    — (value, index) => string. Consumer-facing;
+                             lets you say "format ticks as $%.2f" etc.
+    - AxisProps<V>        — { tickCount?, tickFormatter?, label?,
+                             labelOffset?, stroke? }
+
+`src/axes/XAxis.tsx` and `src/axes/YAxis.tsx`
+  Both render three things:
+    - the axis LINE itself (an <line>)
+    - each TICK: a short line + a text label using tickFormatter
+    - optionally, a static axis LABEL (the axis TITLE, e.g. "Month")
+
+  How tick values come from: for linear/time scales we call
+  `scale.ticks(n)` (D3 returns ~n evenly-spaced sensible values).
+  For band scales we use `scale.domain()` directly (every category
+  is a tick). YAxis rotates its label -90° so it reads bottom-to-top,
+  the standard convention.
+
+`src/__tests__/setup.ts`
+  A vitest "setup file" — runs once before all tests. Two jobs:
+    - Register @testing-library/jest-dom matchers (adds things like
+      `.toBeInTheDocument()` to expect())
+    - Stub globalThis.ResizeObserver so ChartContainer doesn't crash
+      in jsdom (jsdom doesn't implement ResizeObserver)
+
+`src/__tests__/testUtils.tsx`
+  A helper that lets tests skip ChartContainer entirely and render
+  Line/XAxis/YAxis inside a hand-crafted ChartContext.Provider.
+
+  Why: ChartContainer needs a real ResizeObserver to know its width.
+  In tests we want fixed, predictable dimensions. So we mock the
+  context with 400×300 dimensions and known scales, then render the
+  component we're testing directly inside it. This is a standard
+  React testing pattern for context-consuming components.
+
+`src/__tests__/Line.test.tsx`
+  Four tests. The important ones:
+    - Line renders exactly one <path> with a valid `d` attribute
+    - The label render prop is CALLED once per data point
+    - Returning null from label skips that point (proves the
+      per-point filter mechanism works)
+
+`src/__tests__/Axes.test.tsx`
+  Five tests total across both axes. Covers tick rendering,
+  tickFormatter application, and axis label positioning (including
+  the YAxis rotate(-90) assertion).
+
+Total test count went from 6 (Phase 2) to 15 (Phase 3).
+
+--- Context extension (a small Phase 2 patch) ----------------
+
+Line needs the resolved x/y accessor functions to compute pixel
+positions per datum. Phase 2's context only carried the scales.
+So we added two fields to ChartContextValue:
+
+    xAccessor: (d) => number | Date | string
+    yAccessor: (d) => number | Date | string
+
+ChartContainer resolves xKey/x and yKey/y into these functions
+and puts them in the provider value. Zero public-API change —
+context is internal.
+
+--- The PLAYGROUND (a dev-only mini-app) ---------------------
+
+Testing SVG structure in code proves correctness. But we're
+humans — we want to SEE the chart. Phase 9 will build the real
+docs site, but that's far off. So we added a tiny Vite dev
+server just for us:
+
+    packages/chartly/playground/
+    ├── index.html         <-- root HTML page, has <div id="root">
+    ├── main.tsx           <-- ReactDOM.createRoot into #root
+    ├── App.tsx            <-- a demo LineChart consumer
+    └── vite.config.ts     <-- Vite config (React plugin, port 5173)
+
+Run it with:
+
+    npm run dev:playground
+
+...and Vite opens a browser showing a fully-rendered line chart
+with axes, tick labels, and a $270 label above the last point.
+Resize the window — the chart follows.
+
+Why this doesn't ship to npm:
+  - `"files": ["dist"]` in package.json means ONLY dist/ gets
+    published. playground/ is ignored.
+  - vite is a devDependency, not a dependency, so consumers of
+    chartly don't install it.
+  - tsup only bundles src/index.ts as the entry; playground/ is
+    never seen by the bundler.
+
+It's a private tool for us. Same pattern most React libraries use
+during development (Recharts calls theirs "demo/", Radix uses
+Storybook, etc.).
+
+--- What "start dev server and see it in a browser" means ----
+
+There's a general Claude Code guideline: for UI changes, start
+the dev server and actually look at the feature in a browser
+before calling it done. For a library this is awkward — the
+library has no "page." The playground solves that: it's a real
+page, running the library, that we can look at.
+
+Every phase from 4 onward will use the playground as its "did we
+actually build this right?" check.
+
+
+------------------------------------------------------------
+4b. PHASE 4 — WHAT WE ACTUALLY DID (INTERACTIVITY)
+------------------------------------------------------------
+
+Phase 3 charts are pretty but frozen — moving the mouse over them
+does nothing. Phase 4 makes them respond. Drop a `<Tooltip>` inside
+`<ChartContainer>` and now hovering over the line reveals:
+
+  - A vertical guide line at the nearest x
+  - A dot on the nearest data point
+  - A card next to the point showing whatever JSX you wrote
+
+Scope was intentionally tight: ONE new component (`<Tooltip>`), ONE
+new internal hook (`useHoverState`), no changes to any existing
+files. That "purely additive" property is a good smoke test for the
+architecture — it means the abstractions from Phases 2–3 are
+composable enough to bolt features on without a rewrite.
+
+--- The nearest-point problem: why bisector? ------------------
+
+When the mouse is at pixel x=140, which data point is the "nearest"?
+For a chart with 5 points, you could just loop through all of them
+and compute distances — that's O(n) per mousemove event, ~60 times
+per second. Fine for 5 points. But time-series charts often have
+1000+ points, and O(n) at 60Hz starts costing real cycles.
+
+D3 provides a smarter approach in `d3-array`: `bisector`. It's a
+binary search on a sorted array (O(log n) instead of O(n)). Here's
+what happens per mousemove:
+
+  1. Read mouse pixel x from the event.
+  2. `xScale.invert(pixelX)` → the DATA value the mouse hovers.
+     (Scales know how to go both directions: data → pixel via the
+     scale, pixel → data via .invert().)
+  3. `bisector.center(xValues, dataValue)` → the INDEX of the
+     nearest data point in the sorted x-values array. Binary
+     search under the hood.
+
+Result: even with 100,000 points, nearest-point lookup stays
+under a microsecond. This is the specific piece the CLAUDE.md
+roadmap called out — because getting it wrong is what turns
+"snappy chart" into "laggy chart" on large datasets.
+
+Band scales (categorical x-axis like ["Jan","Feb",...]) can't
+use .invert() — there's no meaningful inverse for a category
+name from a pixel. So for band scales we fall back to the O(n)
+pixel-distance loop. Categories are usually small in count so
+this is fine.
+
+--- How the pointer events work ------------------------------
+
+`<Tooltip>` renders an invisible `<rect>` covering the plot area.
+That rect has three properties that make it work:
+
+  - `fill="transparent"` — nothing visible on screen, but SVG
+    still hit-tests it. Try `fill="none"` and it would let
+    pointer events pass through — subtle SVG gotcha we handle
+    correctly.
+  - `onMouseMove` — fires on every mouse move over the rect.
+    Fires the useHoverState hook to update the active point.
+  - `onMouseLeave` — fires when the mouse leaves the rect.
+    Clears the active state so the tooltip disappears.
+
+Critical detail: the rect is the LAST element in the tooltip's
+`<g>`. SVG renders in document order (later elements paint on
+top of earlier ones) AND does hit-testing top-down. So by
+putting the rect last we ensure:
+
+  - Pointer events land on the rect, not on the guide line/dot
+    (which would break onMouseLeave because leaving the dot to
+    return to the rect would fire a spurious mouseleave).
+  - The `pointerEvents="none"` on the indicator and content
+    groups guarantees this even if a consumer's tooltip JSX is
+    opaque.
+
+We also require consumers to put `<Tooltip>` LAST inside
+`<ChartContainer>` so the tooltip's rect renders on top of the
+Line and axes. Documented in the Tooltip type's JSDoc; not
+enforced programmatically. This is a small tax for a large
+simplicity gain (no z-index-like layering system needed).
+
+--- Files we created in Phase 4 ------------------------------
+
+`src/interaction/types.ts`
+  Two shared types:
+    - TooltipState<T>   — { x, y, datum: T, index } — same shape
+                          as Line's label render-prop args on
+                          purpose (consistent API surface).
+    - TooltipRender<T>  — (state) => ReactNode
+
+
+....COME BACK TO
+`src/interaction/useHoverState.ts`
+  The bisector logic + React state, wrapped in a hook. Returns
+  `{ active, onMouseMove, onMouseLeave }`. The hook is currently
+  internal — not exported publicly — because the intended use is
+  through `<Tooltip>`. Future phases might export it if consumers
+  want to build custom hover UI without our tooltip chrome.
+
+`src/interaction/Tooltip.tsx`
+  The component. Renders (in document order):
+    1. Guide line + circle at active point (if any + indicator
+       enabled)
+    2. Consumer's tooltip content (if any) 
+    3. Invisible overlay rect (last, on top)
+
+  Props:
+    - children (required) — the render function
+    - showIndicator (bool, default true)
+    - indicatorStroke, indicatorOpacity, dotRadius, dotFill
+      — visual customization for the default indicator
+
+`src/__tests__/Tooltip.test.tsx`
+  Five tests. The important ones:
+    - Bisector picks nearest point — fires a mousemove at a
+      clientX that lands between two data points and asserts
+      the render function gets called with the closer index.
+      This test would fail if we accidentally regressed the
+      bisector math.
+    - onMouseLeave clears state — verifies the tooltip
+      disappears when the mouse leaves.
+    - `showIndicator={false}` suppresses the guide line + dot
+      — proves the escape hatch works.
+
+Total test count: 20 (up from 15 in Phase 3).
+
+--- One small fix along the way ------------------------------
+
+The hook originally used `evt.nativeEvent.offsetX` to read mouse
+position (as the plan suggested). While writing tests we noticed
+this can behave inconsistently on SVG elements across browsers
+(Firefox in particular). Switched to `evt.clientX - rect.left`
+where rect comes from the overlay's `getBoundingClientRect()`.
+This is the cross-browser reliable pattern; jsdom returns
+`rect.left = 0`, so tests can just pass a `clientX` and the math
+lines up.
+
+--- Playground update ----------------------------------------
+
+`playground/App.tsx` gained a `<Tooltip>` after `<Line>`, showing
+a small white card with the month name and dollar value when you
+hover. Run `npm run dev:playground` to try it: hover across the
+line and watch the card jump to snap to the nearest data point.
+
+
+------------------------------------------------------------
+4c. PHASE 5a — WHAT WE ACTUALLY DID (CURVES, AREA, GRADIENT)
+------------------------------------------------------------
+
+The original Phase 5 in CLAUDE.md was a big lift — 6 chart types
+in one shot (Bar, Area, Scatter, Composed, Stacked Bar, Stacked
+Area). You showed a reference chart of a curved line with a
+green gradient fill, and asked "can my chart achieve this?" — so
+we scoped this pass down to the two ingredients that reference
+needs: a `curve` prop and an `<Area>` component. Bar/Scatter/
+Composed/Stacked become **Phase 5b** later.
+
+--- What a "curve" means in D3 -------------------------------
+
+Given a set of points, there are many ways to draw a line
+through them:
+
+  - LINEAR — straight segments between each point (Phase 3
+    default; what our Line did before this phase)
+  - MONOTONE — a smooth curve that never overshoots. Financial
+    charts almost always use this. Your reference used this.
+  - STEP — a staircase, e.g. rate stays constant until the next
+    reading. Good for step-change data.
+
+D3 provides these as "curve factories" from d3-shape:
+`curveLinear`, `curveMonotoneX`, `curveStepAfter`. We wrap them
+in a friendly string API:
+
+    <Line curve="monotone" />
+    <Area curve="monotone" />
+
+Both components take the same `curve` prop, and both use a shared
+resolver in `src/shapes/curves.ts` that maps the string to the
+correct d3 factory. Zero surface added on the consumer's side
+beyond one prop.
+
+--- The `<Area>` component -----------------------------------
+
+An Area chart is just a filled polygon between the line and a
+baseline. D3 provides `d3-shape.area()` — same idea as `line()`,
+but takes both a top y (`y1`) and a bottom y (`y0`).
+
+Our Area:
+  - Uses `y0 = height - margin.bottom` (bottom of plot area) as
+    the baseline. Not the data's y=0, which would be off-screen
+    for the reference chart (rates around 0.87). Common charting
+    convention.
+  - Takes the same fill/stroke/curve/label props as Line.
+  - Emits a `<path>` with a closed `d` attribute (starts with M,
+    ends with Z). SVG paint fills the enclosed region.
+
+Consumer places `<Area>` BEFORE `<Line>` in JSX so the line paints
+on top. Same document-order convention as Tooltip going last.
+
+--- The `<LinearGradient>` helper -----------------------------
+
+SVG gradients are defined via `<defs><linearGradient>...` blocks
+and referenced by URL:
+
+    <defs>
+      <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#a8ce34" stop-opacity="0.35" />
+        <stop offset="100%" stop-color="#a8ce34" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    <path fill="url(#fade)" ... />
+
+Every phase-5 area chart needs this same 5-line block, so we
+wrapped it in a component:
+
+    <LinearGradient
+      id="fade"
+      from="#a8ce34"
+      to="#a8ce34"
+      fromOpacity={0.35}
+      toOpacity={0}
+    />
+    <Area fill="url(#fade)" />
+
+That's it. Direction defaults to vertical (top → bottom).
+Set `direction="horizontal"` for left → right. Bring-your-own
+`<defs>` still works — the helper is opt-in, not a wall.
+
+Why a component (not a hook or a utility function)? SVG gradients
+LIVE in the SVG tree — they need to be children of the `<svg>` to
+be found by `url(#id)`. A component naturally lives inside JSX and
+composes with the rest of the chart. A hook would need to inject
+into the DOM tree separately, which is awkward.
+
+--- Files we created / touched in Phase 5a --------------------
+
+`src/shapes/curves.ts` (NEW)
+  Two exports:
+    - CurveType — "linear" | "monotone" | "step"
+    - resolveCurve(t) — returns the corresponding d3 curve factory
+  Shared by Line and Area.
+
+`src/shapes/Line.tsx` (MODIFIED)
+  Added `curve?: CurveType` prop (default "linear"). One-line
+  change to the d3 line builder: `.curve(resolveCurve(curve))`.
+  Fully backward-compatible — omit the prop and behavior is
+  identical to Phase 3.
+
+`src/shapes/Area.tsx` (NEW)
+  New component mirroring Line's API surface + baseline logic.
+
+`src/shapes/LinearGradient.tsx` (NEW)
+  Tiny convenience wrapper around the SVG defs.
+
+`src/__tests__/Area.test.tsx` (NEW)
+  Three tests: closed path shape, fill/opacity props, curve prop
+  actually changes the path (monotone emits `C` bezier segments,
+  linear does not — the "did resolveCurve actually wire up?" smoke
+  test).
+
+`src/__tests__/Line.test.tsx` (MODIFIED)
+  One new test: curve prop switches the generated path between
+  linear (no `C`) and monotone (has `C`).
+
+`playground/App.tsx` (REBUILT, then reverted to our data)
+  Initially rebuilt to visually mirror the USD/EUR reference chart
+  as a capability demo. Then reverted to our own month/revenue
+  data (5 rows) while KEEPING the visual improvements: curved
+  monotone line, blue gradient area fill, styled tooltip card.
+  The takeaway: consumers CAN style charts like the reference (or
+  any way they want) — the outer card, header, colors, and typography
+  are all their code. Chartly outputs a bare `<div><svg>...</svg></div>`
+  with no chrome; consumer wraps it.
+
+Total test count: 24 (up from 20 in Phase 4).
+
+--- What still doesn't quite match the reference --------------
+
+Small things we didn't do (yet):
+  - **Dotted horizontal grid lines** — that's Phase 8 (polish).
+  - **Separate colors for axis lines vs tick text** — right now
+    both come from a single `stroke` prop. To match the reference
+    exactly (invisible axis line, colored text) we'd add a
+    `textFill` prop to XAxis/YAxis. Small change; deferred to
+    Phase 8 alongside grid lines.
+
+Everything else in your reference — curve shape, gradient fill,
+dark theme, tooltip layout, hover indicator — works today.
+
+
+------------------------------------------------------------
+4d. PHASE 5b — WHAT WE ACTUALLY DID (BAR CHART)
+------------------------------------------------------------
+
+Phase 5b starts delivering the shapes we deferred in 5a. Rather
+than doing all 5 remaining shapes at once, we're slicing them
+into small phases. First slice: `<Bar>`.
+
+This phase mattered for a specific structural reason: it's the
+first shape to use a **band** x-scale. Line/Area have always been
+plotted on linear or time scales — continuous x. Bar plots on
+categorical x — ("Widgets", "Gadgets", "Gizmos"). Getting Bar
+right means the band-scale code path we set up back in Phase 2
+finally gets exercised end-to-end: container props →
+`useChartScales` → context → shape → tooltip's band-fallback in
+`useHoverState`.
+
+If band scales had been broken anywhere in that chain, we'd
+have caught it here. They weren't. Good.
+
+--- What a "band scale" is -----------------------------------
+
+Linear/time scales map a CONTINUOUS domain (numbers, dates) to
+pixels. A band scale maps a DISCRETE domain (a list of category
+strings) to pixels. It divides the pixel range into equal-width
+"bands" — one per category — with optional padding between them.
+
+Concretely, given:
+  - domain: ["A", "B", "C", "D"]
+  - range: [40, 390]  (350 pixels wide)
+  - padding: 0.1     (10% gap between bands)
+
+d3's band scale gives you back:
+  - scale("A")       → 47 (left edge of A's band)
+  - scale("B")       → 132
+  - scale.bandwidth() → ~75 (width of every band)
+
+Bar uses `scale(x)` for the bar's left edge and `bandwidth()` for
+its width. That's why all bars in a bar chart are the same width
+without us having to compute anything ourselves.
+
+--- Bar's geometry -------------------------------------------
+
+For each row of data, Bar computes a `<rect>`:
+
+    x       = xScale(category)              // left edge
+    width   = xScale.bandwidth()            // from the band scale
+    y       = min(baselinePx, yScale(value))
+    height  = |baselinePx - yScale(value)|
+
+The `baseline` is where bars start FROM. The default is `0` — a bar
+for value 25 goes from 0 to 25. But if your y-domain doesn't
+include 0 (e.g., revenue is 120–270), yScale(0) would produce a
+pixel OUTSIDE the plot area. We clamp:
+
+    baselinePx = clamp(yScale(baseline), plotTop, plotBottom)
+
+The clamping keeps bars looking sensible for typical
+positive-only datasets: they visually stand on the plot floor.
+For datasets that include 0 or negative values, `yScale(0)` sits
+naturally inside the plot area and no clamping happens. If you
+need to override, pass a `baseline` prop (in data-value terms) —
+Bar takes it from there.
+
+--- Fallback for non-band x-scales ---------------------------
+
+If a consumer accidentally uses `<Bar>` inside a
+`<ChartContainer xScaleType="linear">`, the x-scale won't have
+`.bandwidth()`. Rather than crash, we fall back to a 20 px fixed
+bar width. Not idiomatic, but non-fatal — the developer sees
+weird-looking bars instead of a white screen and can fix.
+
+--- Tooltip integration — zero code changes ------------------
+
+Phase 4's `useHoverState` already handles band scales: it can't
+`invert` on a band scale, so it falls back to a pixel-distance
+loop over the data, snapping to the nearest band center. That
+means the existing `<Tooltip>` works with Bar with no changes —
+drop it in and it snaps to whichever bar you're hovering.
+
+Bar's `label` render-prop passes `x = bandPos + bandWidth/2`
+(bar top-center) and `y = top` (top of the bar). Consumers get
+consistent geometry across all shapes.
+
+--- Files we created / touched in Phase 5b -------------------
+
+`src/shapes/Bar.tsx` (NEW)
+  The component. Prop shape mirrors Line and Area for API
+  consistency: fill, fillOpacity, stroke, strokeWidth, plus:
+    - `radius` — corner rounding (SVG `rx`)
+    - `baseline` — the y-value bars start from (default 0)
+    - `label` — render-prop label, same as every shape
+
+`src/index.ts` (MODIFIED)
+  Added `Bar` and `BarProps` to public exports.
+
+`src/__tests__/testUtils.tsx` (EXTENDED)
+  Added `makeBandContext()` and `renderInBandChart()` — mirrors
+  of the existing linear-scale helpers but wired up with a
+  d3 `scaleBand` on the x axis. Reusable for Stacked Bar tests
+  later. Also exported `BandRow` type and `BAND_DATA` fixture.
+
+`src/__tests__/Bar.test.tsx` (NEW)
+  Five tests. The important ones:
+    - "all bars share the band scale's bandwidth" — asserts every
+      rect's width attribute is the same string. Guards against
+      us accidentally computing width per-bar or forgetting to
+      wire `.bandwidth()`.
+    - "clamps baseline to plot bottom when y-domain omits 0" —
+      uses a synthetic y-domain of [100, 200] with data values
+      130/180 and asserts every bar's bottom (y+height) lands at
+      or above the plot bottom. This locks in the baseline
+      clamping behavior described above.
+    - "label render-prop fires with top-center coordinates" —
+      calls a `vi.fn` spy, asserts the x arg falls between
+      `bandPos` and `bandPos + bandWidth` for every bar.
+
+  Small aside: the baseline test originally used value=100 (the
+  domain min). Test failed because that's mathematically a zero-
+  height bar (the value sits AT the baseline). Fixed by using
+  values strictly inside the domain (130 and 180).
+
+`playground/App.tsx` (EXTENDED)
+  Added a second card BELOW the existing line/area chart with a
+  bar chart of made-up product sales:
+      Widgets 42, Gadgets 65, Gizmos 28, Doohickeys 51.
+  Same light card wrapper, same blue accent, radius=4 for slight
+  rounding, same tooltip pattern. Both charts live in the same
+  page so you can see Line and Bar side by side.
+
+Total test count: 29 (up from 24 in Phase 5a).
+
+--- Small follow-up: tooltip clipping when data hits the top ---
+
+While playing with the bar chart in the browser, we caught a
+visual bug: hovering the TALLEST bar (Gadgets, 65 units) made
+the tooltip card overflow the top of the chart card. The top
+edge of the "65 units" text was chopped off.
+
+Root cause: our playground tooltip used a fixed offset
+`translate(x, y - 46)` — always drawing the card 46 px ABOVE
+the active point. For the tallest bar, `y` is very small (bar
+top is near the SVG's top edge), so `y - 46` becomes negative
+and the browser clips content outside the SVG viewport.
+
+Fix (in playground/App.tsx, both tooltips): FLIP the card
+below the point when there isn't enough room above:
+
+    const cardH = 40;
+    const gap = 8;
+    const above = y > cardH + gap;
+    const dy = above ? -cardH - gap : gap;
+    return <g transform={`translate(x, y + dy)`}>...</g>;
+
+This isn't a library bug — Chartly gives you the pixel position
+of the active point, and it's up to your render function to
+decide where the tooltip card sits relative to that. The flip
+pattern above is a small recipe every real-world tooltip
+eventually adopts. Something to keep in mind when you build
+your own tooltip render functions.
+
+
+------------------------------------------------------------
+4e. PHASE 5c — WHAT WE ACTUALLY DID (SCATTER)
+------------------------------------------------------------
+
+The smallest phase yet: `<Scatter>` — one `<circle>` per data
+point, plotted at (xScale(x), yScale(y)). No new patterns, no
+new architecture, no new hooks. Just a tiny component that
+proves the existing scale system is general enough to power
+another chart type without ceremony.
+
+Why bother with a phase for something this small: because it
+closes out the "single-shape, single-series" family (Line, Area,
+Bar, Scatter). After this, the only unfinished work in the
+original Phase 5 roadmap is COMPOSITION — multiple shapes on
+one chart — and STACKING (which needs d3's stack() transform).
+Both are architectural questions, not "draw another shape"
+questions. Nice to have the atoms complete first.
+
+--- What "scatter" means for us ------------------------------
+
+A scatter plot shows discrete (x, y) points as dots, without
+connecting them. Common uses:
+  - correlation studies ("does age predict income?")
+  - distributions where trend matters less than spread
+  - overlaying markers on top of a line chart (Composed later)
+
+The math: for each data row, run xAccessor and yAccessor to
+get raw values, apply the scales to convert to pixels, and
+render a `<circle cx cy r>`. That's it. Ten lines of hot logic.
+
+--- Files we created / touched in Phase 5c -------------------
+
+`src/shapes/Scatter.tsx` (NEW)
+  Prop shape mirrors Bar minus the bar-specific bits:
+    - fill, fillOpacity, stroke, strokeWidth  (styling)
+    - radius (dot size, default 4)
+    - label (render-prop, same as every shape)
+  No `curve` (dots aren't curves), no `baseline` (dots don't
+  extend down to anything). Generic `T` for typed datum.
+
+  Internal helper `pixelX(scale, value)` handles the "if the
+  x-scale is a band scale, center on the band" fallback. Same
+  logic as XAxis and Bar use. We wrote it inline here rather
+  than extracting a shared helper — decided that when we needed
+  it three times, we'd pull it into a `positionHelpers.ts`.
+  We're at three now (XAxis, Bar, Scatter). Next phase will
+  probably extract.
+
+`src/index.ts` (MODIFIED)
+  Added `Scatter` and `ScatterProps` to public exports.
+
+`src/__tests__/Scatter.test.tsx` (NEW)
+  Four tests:
+    - Renders one circle per data point
+    - Applies fill / radius / stroke props
+    - Positions the FIRST circle at (xScale(x), yScale(y)) —
+      guards against accidentally swapping axes, which would
+      pass all other tests but be visually wrong
+    - Label render-prop fires per point with pixel coords + datum
+
+`playground/App.tsx` (EXTENDED)
+  Added a THIRD card at the bottom: an age-vs-income scatter of
+  15 fake survey respondents. Uses the same light card wrapper,
+  same blue accent (0.7 opacity so overlapping points are still
+  distinguishable), radius 5, same tooltip pattern with the
+  flip-below fix. The playground now has three charts stacked
+  vertically: line/area (Phase 3–5a), bar (5b), scatter (5c).
+
+Total test count: 33 (up from 29 in Phase 5b).
+
+--- Observation: the architecture is boring now, in a good way -
+
+Phase 3 was the "does the architecture work" phase. Phase 4
+tested the interaction layer. Phase 5a validated the shape
+extension pattern. Phase 5b validated band scales end-to-end.
+Phase 5c wrote 50 lines of new code, changed no shared files,
+touched no shared logic, and shipped a third fully-functional
+chart type. That's what "the abstractions are right" looks like
+— adding a new shape becomes rote.
+
+Next phases will exercise things we HAVEN'T pressure-tested yet:
+composition (multiple shapes / two y-axes?), animation, polar
+charts. Those will surface real design questions again.
+
+
+------------------------------------------------------------
+4f. PHASE 5d — WHAT WE ACTUALLY DID (COMPOSED CHARTS)
+------------------------------------------------------------
+
+A "composed chart" is one that shows more than one series at
+once — e.g. bars for monthly revenue with a smooth line overlay
+for the running average. All four Cartesian shapes (Line, Area,
+Bar, Scatter) technically already worked inside the same
+ChartContainer before this phase — but they all read the SAME
+`yAccessor` from context, meaning they all plotted the same
+column. Useful for redundancy demos, useless for anything real.
+
+Phase 5d fixes that with the smallest possible change: each
+shape gains an optional per-shape y accessor. Same data, same
+x-scale, same y-scale — but each shape picks which COLUMN of
+the data row it draws from.
+
+--- The two flavors of "composed" -----------------------------
+
+There are two ways charting libraries handle multiple series:
+
+  1. SAME DATA, DIFFERENT COLUMNS
+     data = [{month, revenue, avg}, ...]
+     Bar reads .revenue; Line reads .avg. Shared y-scale.
+
+  2. DIFFERENT DATA ARRAYS PER SHAPE
+     bars data = [...]; line data = [...]
+     Potentially different x-values, different lengths,
+     different y-ranges. Often means a SECOND y-axis on the
+     right side of the chart.
+
+Phase 5d ships flavor (1) only. Flavor (2) is a bigger design
+question:
+  - How does the container know each shape's data?
+  - Do we support a secondary y-scale, and if so, how does the
+    consumer opt into it?
+  - Which series does the tooltip snap to?
+
+Real answers, but deferred until we have a concrete need. In
+practice, MOST composed charts fit flavor (1) — the classic
+"revenue + running average" or "temperature + rainfall" cases
+have all series on the same monthly (or daily) x rows.
+
+--- The `y` and `yKey` per-shape props ------------------------
+
+Every shape now accepts two optional props:
+
+    y?: (d: T) => number    -- accessor function
+    yKey?: KeysOfType<T, number>  -- key into T (numeric fields only)
+
+Precedence: if `y` is set, use it. Else if `yKey` is set, use
+`d[yKey]`. Else fall back to the container's yAccessor (the
+column set via `<ChartContainer yKey="...">`).
+
+Usage in a composed chart:
+
+    <ChartContainer
+      data={sales}
+      xKey="month" xScaleType="band"
+      yKey="revenue" yScaleType="linear"
+    >
+      <Bar />                          -- inherits yKey="revenue"
+      <Line y={(d) => d.runningAvg} /> -- overrides for this shape
+    </ChartContainer>
+
+The bars come from `revenue`. The line comes from `runningAvg`.
+Same rows, different columns. The y-scale still spans the
+revenue domain — which is fine here because runningAvg fits
+inside that range. If it didn't, the line would clip; we'd
+need a manual `yDomain` prop on the container. Not implemented
+yet; add when a real chart needs it.
+
+--- The shared helper: `resolveYAccessor` ---------------------
+
+Rather than repeat the precedence logic in four files, we
+factored it into `src/shapes/accessors.ts`:
+
+    export interface YOverride<T> {
+      y?: (d: T) => number;
+      yKey?: KeysOfType<T, number>;
+    }
+
+    export function resolveYAccessor<T>(
+      props: YOverride<T>,
+      fallback: (d: T) => number | Date | string,
+    ): (d: T) => number {
+      if (props.y) return props.y;
+      if (props.yKey !== undefined) {
+        const key = props.yKey as keyof T;
+        return (d: T) => d[key] as number;
+      }
+      return fallback as (d: T) => number;
+    }
+
+Each shape's props type EXTENDS YOverride<T> so consumers see
+both new props in autocomplete. Inside each component, one
+line changes:
+
+    const yFn = resolveYAccessor<T>(props, ctx.yAccessor);
+    // ...then use yFn(datum) instead of ctx.yAccessor(datum)
+
+That's the whole edit. Line, Area, Bar, Scatter each got the
+same two-line change. No context changes, no tests broken.
+
+--- Type-safe `yKey`: KeysOfType at work ----------------------
+
+The `yKey` prop is typed as `KeysOfType<T, number>` — a utility
+we defined back in Phase 2. It's a mapped type that filters
+`keyof T` to only the keys whose values extend `number`. So for
+`type Sale = { month: string; revenue: number; runningAvg: number }`,
+`KeysOfType<Sale, number>` resolves to `"revenue" | "runningAvg"`
+— NOT `"month"`. Consumers get autocomplete showing only the
+numeric fields, and passing `yKey="month"` becomes a compile
+error.
+
+This is the payoff for putting KeysOfType in place early: every
+per-shape override in future phases can reuse it for typed key
+props (`sizeKey` for Bubble, `groupKey` for Stacked, etc.).
+
+--- Files we touched in Phase 5d ------------------------------
+
+`src/shapes/accessors.ts` (NEW)
+  YOverride<T> interface + resolveYAccessor helper.
+
+`src/shapes/Line.tsx` (MODIFIED)
+  Props extend YOverride<T>. Body switched from `useChartContext`
+  destructure to `props`-based, calls `resolveYAccessor` once.
+
+`src/shapes/Area.tsx` (MODIFIED)  — same pattern
+`src/shapes/Bar.tsx` (MODIFIED)   — same pattern
+`src/shapes/Scatter.tsx` (MODIFIED) — same pattern
+
+`src/__tests__/Line.test.tsx` (EXTENDED)
+  New test: passing `y={() => 25}` produces a path where every
+  y coordinate is the same pixel. Guards against future
+  regressions of the override precedence.
+
+`src/__tests__/Bar.test.tsx` (EXTENDED)
+  New test: passing `y={() => 20}` produces bars where all
+  heights are equal. Same intent as the Line test but for a
+  rectangle-based shape.
+
+`playground/App.tsx` (EXTENDED)
+  Added a FOURTH card at the bottom: composed chart with bars
+  for `revenue` and a monotone line overlay for `runningAvg`.
+  Both series share the same 6 monthly rows. The blue bars are
+  semi-transparent (fillOpacity 0.5) so the line reads clearly
+  on top. Tooltip shows both values.
+
+Total test count: 35 (up from 33 in Phase 5c).
+
+--- Why we don't just make it a `<Composed>` component --------
+
+Some libraries expose composition as a distinct component:
+`<ComposedChart>` that internally handles multiple series. We
+deliberately didn't. Reasoning: we already have `<ChartContainer>`
++ shape children. Composition is just "drop more children." A
+`<Composed>` wrapper would be a NEW abstraction to learn for zero
+new capability. The cost of that decision: consumers might not
+realize composition works until they try it. Documented in
+breakdown.txt and playground demo — sufficient for now.
+
+
+------------------------------------------------------------
+5. CURRENT STATE — WHAT WORKS TODAY
+------------------------------------------------------------
+
+From `packages/chartly/` you can run:
+
+  npm run typecheck        — TypeScript type check, no compilation
+  npm run build            — Produces dist/ (dual ESM + CJS + .d.ts)
+  npm test                 — Runs vitest (35 tests, all passing)
+  npm run dev              — Rebuilds library on save (tsup --watch)
+  npm run dev:playground   — Boots the Vite playground in the browser
+
+Build output size (as of end of Phase 5d):
+  ESM  dist/index.js   16.20 KB  (was 15.68 KB after Phase 5c)
+  CJS  dist/index.cjs  17.36 KB  (was 16.83 KB after Phase 5c)
+  d.ts               ~5.37 KB
+  (Small +0.5 KB bump for the shared accessor helper.)
+  D3 is NOT bundled — external via tsup's default rule for direct
+  deps. React is externalized via tsup config.
+
+The public API right now (things exported from `src/index.ts`):
+
+  Components:
+    <ChartContainer />       Cartesian container (Phase 2)
+    <Line />                 line shape          (Phase 3, curve added 5a)
+    <XAxis />                x-axis              (Phase 3)
+    <YAxis />                y-axis              (Phase 3)
+    <Tooltip />              hover tooltip       (Phase 4)
+    <Area />                 filled area shape   (Phase 5a)
+    <LinearGradient />       SVG defs helper     (Phase 5a)
+    <Bar />                  band-scale bar shape (Phase 5b)
+    <Scatter />              circles per data point (Phase 5c)
+
+  Hook:
+    useChartContext<T>()     read scales/dims/accessors in children
+
+  Types:
+    ChartContainerProps      generic prop shape with discriminated union
+    ChartContextValue        the shape passed via context
+    LineProps<T>             generic Line props (typed datum)
+    AreaProps<T>             generic Area props                  (Phase 5a)
+    LinearGradientProps      { id, from, to, ... }               (Phase 5a)
+    CurveType                "linear" | "monotone" | "step"      (Phase 5a)
+    BarProps<T>              generic Bar props                   (Phase 5b)
+    ScatterProps<T>          generic Scatter props               (Phase 5c)
+    YOverride<T>             per-shape y-accessor override       (Phase 5d)
+                              — extends all shape props
+    AxisProps                shared XAxis/YAxis prop shape
+    TooltipProps<T>          Tooltip props (typed datum)         (Phase 4)
+    TooltipState<T>          { x, y, datum, index } passed to    (Phase 4)
+                              the Tooltip render function
+    TooltipRender<T>         the Tooltip render function type    (Phase 4)
+    ShapeLabelRender<T>      the render-prop label function type
+    ShapeLabelRenderProps<T> the { x, y, datum, index } passed to it
+    TickFormatter<V>         axis tick formatter function type
+    TickValue                number | Date | string
+    Margin                   { top, right, bottom, left }
+    ScaleType                "linear" | "time" | "band"
+    ScaleInput<S>            input value type for a given scale type
+    KeysOfType<T, V>         keys of T whose values match V
+
+  Constants:
+    DEFAULT_MARGIN           { top: 10, right: 10, bottom: 30, left: 40 }
+    VERSION                  "0.0.0"
+
+A minimal chart with a curved line, gradient area fill, and hover
+tooltip now compiles, renders, and looks like the reference image:
+
+    <ChartContainer
+      data={data}
+      xKey="date" xScaleType="time"
+      yKey="rate" yScaleType="linear"
+    >
+      <LinearGradient id="fade" from="#a8ce34" to="#a8ce34"
+        fromOpacity={0.35} toOpacity={0} />
+      <XAxis stroke="#8b8b8b" tickFormatter={dateFmt} />
+      <YAxis stroke="#8b8b8b" tickFormatter={(v) => v.toFixed(3)} />
+      <Area fill="url(#fade)" curve="monotone" />
+      <Line stroke="#a8ce34" strokeWidth={2} curve="monotone" />
+      <Tooltip<Row>>
+        {({ x, y, datum }) => (
+          <g transform={`translate(${x + 12}, ${y - 50})`}>
+            <rect width={140} height={50} rx={6} fill="#1a1a1a" stroke="#2a2a2a" />
+            <text x={12} y={22} fontSize={11} fill="#888">
+              {dateFmt.format(datum.date)}
+            </text>
+            <text x={12} y={40} fontSize={13} fill="#a8ce34" fontWeight={600}>
+              rate : {datum.rate.toFixed(5)}
+            </text>
+          </g>
+        )}
+      </Tooltip>
+    </ChartContainer>
+
+
+------------------------------------------------------------
+6. WHAT'S NEXT — THE 9-PHASE ROADMAP
+------------------------------------------------------------
+
+Refer to CLAUDE.md for the master list. In short:
+
+  Phase 1  DONE  Scaffolding — build pipeline
+  Phase 2  DONE  ChartContainer + scale system
+  Phase 3  DONE  LineChart end-to-end (Line, XAxis, YAxis,
+                 tickFormatter, static label, render-prop label
+                 pattern). Vite playground added. Architecture
+                 validated end-to-end.
+  Phase 4  DONE  Tooltip + hover/nearest-point interaction. Uses
+                 d3-array's bisector for O(log n) lookup on
+                 linear/time scales; O(n) pixel-distance fallback
+                 for band scales.
+  Phase 5a DONE  Focused scope: curve prop (linear/monotone/step)
+                 for Line + Area; new <Area> component; new
+                 <LinearGradient> helper.
+  Phase 5b DONE  <Bar> component — first shape that uses the band
+                 x-scale end-to-end. Baseline clamping for
+                 non-zero-including data. Tooltip works with zero
+                 code changes (Phase 4 already handled bands).
+  Phase 5c DONE  <Scatter> component — circles per data point.
+                 Smallest phase yet; closes out the single-series
+                 Cartesian shapes.
+  Phase 5d DONE  Composed charts via per-shape y accessor override.
+                 Same-data flavor only (both series share `data`,
+                 x-scale, and y-scale). No new component — every
+                 shape now takes optional `y`/`yKey`.
+  Phase 5e NEXT  Stacked variants. Uses d3-shape's stack() transform
+                 to reshape series-of-series data into stacked
+                 coordinates. Own dedicated components:
+                 <StackedBar>, <StackedArea>. Likely also brings in
+                 a small legend concern.
+  Phase 6        Polar architecture: PolarChartContainer + Pie
+                 (extracts useResize into its shared final form)
+  Phase 7        Radar chart (reuses polar container)
+  Phase 8        Animation + polish: transitions, legend, grid
+  Phase 9        Docs site with live examples (MDX + Sandpack)
+
+
+------------------------------------------------------------
+7. VOCAB CHEAT SHEET
+------------------------------------------------------------
+
+MONOREPO       — one git repo holding multiple related packages
+WORKSPACES     — npm's feature for managing a monorepo
+BUNDLER        — tool that packages source code for shipping (tsup)
+ESM / CJS      — two module formats; we ship both
+PEER DEPENDENCY — a package that MUST be provided by the consumer
+                  (React, in our case). Not installed by us.
+D.TS FILE      — TypeScript type declaration file. Ships alongside
+                  .js so consumers get autocomplete.
+TREE-SHAKING   — bundlers dropping unused exports from your final app
+CONTEXT        — React's way to share values with descendant components
+                  without prop-drilling
+HOOK           — a `use*` function that lets components use React
+                  features (state, effects, context, custom logic)
+SCALE          — D3's word for a function that maps data to pixels
+RESIZEOBSERVER — browser API that fires when a DOM element resizes
+                  (how our charts stay responsive)
+RENDER PROP    — a function passed as a component's prop; the
+                  component calls it and renders whatever JSX it
+                  returns. Our <Line label={fn} /> is a render prop.
+                  Enables per-point customization by consumers with
+                  full type safety.
+TICK           — one of the labeled positions on an axis (0, 20, 40...
+                  for a linear scale; "Jan", "Feb", "Mar" for a band
+                  scale). d3 scales know how to generate sensible
+                  tick values via `.ticks(n)`.
+TICKFORMATTER  — a function you pass to XAxis/YAxis that formats each
+                  tick's TEXT display, e.g. (v) => `$${v}` prints
+                  "$100" instead of "100".
+PLAYGROUND     — a dev-only mini-app inside our repo (packages/
+                  chartly/playground/) that boots via Vite and lets
+                  us see the library rendering in a real browser.
+                  Not published to npm.
+BISECTOR       — d3-array's binary search helper. Given a sorted
+                  array and a query value, returns the index of the
+                  nearest element in O(log n) instead of O(n).
+                  Powers our tooltip's nearest-point lookup so it
+                  stays fast on large datasets.
+INVERT         — a scale's reverse operation: given a PIXEL, return
+                  the DATA value it maps to. Linear/time scales have
+                  it; band scales don't (there's no meaningful
+                  inverse for a category). We use it to translate
+                  mouse position back into "what data value is the
+                  mouse hovering?"
+POINTER EVENTS — the CSS/SVG property that controls whether an
+                  element receives mouse/touch events. Setting
+                  `pointerEvents="none"` on our tooltip content
+                  ensures the invisible overlay rect underneath
+                  still catches events, keeping onMouseLeave
+                  reliable.
+CURVE FACTORY  — d3-shape's building block for interpolating a
+                  line between points. Different factories produce
+                  different visual results (straight vs monotone
+                  smooth vs staircase). Our CurveType prop maps
+                  a string like "monotone" to `curveMonotoneX`.
+BASELINE       — for an area chart, the y coordinate the fill
+                  extends DOWN to. Our Area uses `height -
+                  margin.bottom` (the bottom of the plot area).
+                  Not the data's y=0, which would put the fill
+                  off-screen for datasets whose values don't
+                  include zero.
+SVG DEFS       — the `<defs>` block inside an SVG holds reusable
+                  definitions (gradients, patterns, filters) that
+                  the rest of the SVG references by URL. Our
+                  LinearGradient renders one of these; consumers
+                  reference it via `fill="url(#id)"`.
+BAND SCALE     — d3's scale for categorical x-axes. Domain is a
+                  list of category strings ("Widgets", "Gadgets",
+                  ...). Range is divided into equal-width "bands"
+                  with optional padding between them. Bar uses
+                  `bandwidth()` to size each rectangle.
+BASELINE (BAR) — the y data value bars start FROM (default 0).
+                  We CLAMP this to the plot area so revenue-style
+                  data (all positive, y-domain [120, 270]) still
+                  looks right — bars visually stand on the plot
+                  floor without the consumer having to override
+                  their y-domain.
+BANDWIDTH      — the pixel width of one band in a band scale.
+                  `xScale.bandwidth()` returns the same number for
+                  every band, which is why all bars in a bar
+                  chart naturally share a width.
+SCATTER PLOT   — a chart of discrete (x, y) points as unconnected
+                  dots. Good for showing correlation, spread, or
+                  overlaying markers on top of a line chart.
+                  Chartly's <Scatter> renders one <circle> per
+                  data row.
+COMPOSED CHART — a chart that shows more than one series at once,
+                  usually of different shape types (bars +
+                  overlay line, area + scatter markers, etc.).
+                  Chartly does the SAME-DATA flavor: every shape
+                  reads from the container's data array; each
+                  shape picks which COLUMN to plot via its own
+                  `y` or `yKey` prop.
+Y ACCESSOR     — a function or key that tells a shape which value
+  OVERRIDE       to pull from each data row as the "y" value. Set
+                  via `y={fn}` or `yKey="fieldName"` per shape.
+                  Falls back to the container's yKey if omitted.
+KEYSOFTYPE     — a TypeScript utility (in src/types.ts) that,
+                  given an object type T and a value type V,
+                  produces the union of keys of T whose values
+                  match V. We use `KeysOfType<T, number>` to
+                  constrain `yKey` to numeric fields only, so
+                  autocomplete never shows string-valued keys.
+
+
+
+/* fe_oa_39673d62d062dbe0cff63f7a151aee6a444dd4fed50e5216 */
