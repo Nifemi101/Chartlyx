@@ -36,9 +36,9 @@ const data: Row[] = [
   { month: new Date("2024-07-01"), revenue: 250 },
   { month: new Date("2024-08-01"), revenue: 290 },
   { month: new Date("2024-09-01"), revenue: 150 },
-  { month: new Date("2024-010-01"), revenue: 300 },
-  { month: new Date("2024-011-01"), revenue: 240 },
-  { month: new Date("2024-012-01"), revenue: 280 },
+  { month: new Date("2024-10-01"), revenue: 300 },
+  { month: new Date("2024-11-01"), revenue: 240 },
+  { month: new Date("2024-12-01"), revenue: 280 },
 ];
 
 interface Product {

@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const title = 'Chartly documentation';
+---
+<BaseLayout title={title}>
+  <section>
+    <p>Welcome to the Chartly docs site. This Astro-powered site is the home for guides, examples, and API reference for the Chartly charting library.</p>
+  </section>
+  <section>
+    <h2>Getting started</h2>
+    <p>Run the docs dev server with:</p>
+    <pre><code>npm run dev</code></pre>
+    <p>Then open <code>http://localhost:5173</code> in your browser.</p>
+  </section>
+  <section>
+    <h2>Next steps</h2>
+    <ul>
+      <li>Build the library package: <code>cd ../chartly && npm run build</code></li>
+      <li>Add chart examples using React components from <code>chartly</code></li>
+      <li>Create MDX pages for guides and API docs</li>
+    </ul>
+  </section>
+</BaseLayout>
