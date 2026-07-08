@@ -2168,4 +2168,17 @@ RING           — one of the concentric background lines in a radar
 
 
 
-/* fe_oa_39673d62d062dbe0cff63f7a151aee6a444dd4fed50e5216 */
+3. Break the 3-equal-card feature grid pattern
+Three equal-width cards under a hero is the single most templated section in web dev right now — it's the shadcn/Tailwind-starter default. A few ways to break it without extra design work:
+
+Make one card visually dominant (2/3 width) — pick your strongest differentiator (e.g. polar charts + radar, or full type-safety) and give it room to show a mini code snippet or mini visual, not just a paragraph
+Or ditch the grid entirely for a horizontal scroll-snap strip of chart thumbnails — Line, Bar, Donut, Radar, Stacked, Scatter, Composed — each a small static preview image/SVG with its name below. This single-handedly signals "9 chart types" better than any paragraph of copy could
+
+4. Give the hero a distinct visual anchor beyond the glow text
+The teal-glow gradient title is nice but is very "generic dev-tool dark theme" at this point (Vercel, Linear, and a hundred SaaS landing pages use this exact glow-on-dark treatment). Options that are more "yours":
+
+Use the actual radar chart shape (the pentagon/spider polygon) as a subtle background watermark behind the hero text — it's distinctive, nobody else's chart-lib homepage has that shape, and it hints at your less-common chart types
+Or animate the HomeChart's line drawing in on page load (stroke-dashoffset reveal) rather than rendering static — motion on load is a cheap, high-impact differentiator your CSS-first instincts from the icon project already prepared you for
+
+5. Add a comparison strip, if you're brave
+A single line like "Line, Area, Bar, Scatter, Stacked, Composed, Pie/Donut, Radar — 8 chart types, ~28KB, zero runtime deps beyond D3 and React" next to a competitor's rough bundle size is a concrete, factual differentiator (assuming you verify the numbers) that most chart-lib landing pages skip in favor of vague marketing copy.

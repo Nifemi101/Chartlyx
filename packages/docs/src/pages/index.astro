@@ -1,56 +1,55 @@
 ---
 import HomeChartSwitcher from '../components/HomeChartSwitcher';
+import LivePreviewPlayground from '../components/LivePreviewPlayground';
+import ChartTypeStrip from '../components/ChartTypeStrip.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const title = 'Chartly documentation';
 ---
 
 <BaseLayout title={title}>
-  <section class="mb-16 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-0 py-8 text-center sm:min-h-auto sm:justify-start sm:py-8">
-    <p class="mb-4 text-[0.85rem] font-extrabold uppercase text-brand-strong">
-      TypeScript-first. D3-powered. React-native.
-    </p>
-    <h1 class="m-0 text-[clamp(4rem,10vw,6.75rem)] font-extrabold leading-[0.95] text-[#67e8f9]">
-      Chartly
-    </h1>
-    <p class="mx-auto mt-7 max-w-[720px] text-[clamp(1.15rem,2.5vw,1.55rem)] leading-[1.45] text-text">
-      A composable charting library for building polished, typed SVG charts with
-      React components.
-    </p>
-    <div class="mt-8 flex justify-center" aria-label="Primary actions">
-      <a
-        class="inline-flex min-w-[min(100%,280px)] items-center justify-center rounded-full bg-[#2f9ce5] px-6 py-3.5 font-extrabold text-white"
-        href="/examples/line/"
-      >
-        <code class="bg-transparent p-0 text-[0.85rem] text-[#eff6ff]">npm install chartly</code>
-      </a>
+  <section class="relative mb-16 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-0 py-8 text-center sm:min-h-auto sm:justify-start sm:py-8">
+    <div class="hero-pattern w-full">
+      <p class="mb-4 text-[0.85rem] font-extrabold uppercase text-brand-strong">
+        TypeScript-first. D3-powered. React-native.
+      </p>
+      <h1 class="m-0 text-[clamp(4rem,10vw,6.75rem)] font-extrabold leading-[0.95] text-[#67e8f9]">
+        Chartly
+      </h1>
+      <p class="mx-auto mt-7 max-w-[720px] text-[clamp(1.15rem,2.5vw,1.55rem)] leading-[1.45] text-text">
+        A composable charting library for building polished, typed SVG charts with
+        React components.
+      </p>
+      <div class="mt-8 flex justify-center" aria-label="Primary actions">
+        <a
+          class="inline-flex min-w-[min(100%,280px)] items-center justify-center rounded-full bg-[#2f9ce5] px-6 py-3.5 font-extrabold text-white"
+          href="/examples/line/"
+        >
+          <code class="bg-transparent p-0 text-[0.85rem] text-[#eff6ff]">npm install chartly</code>
+        </a>
+      </div>
     </div>
     <div class="mt-10 w-full max-w-[760px]">
       <HomeChartSwitcher client:load />
     </div>
   </section>
 
-  <section class="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3" aria-label="Chartly features">
-    <article class="min-h-[190px] bg-panel p-6">
-      <h2 class="mb-3 text-[1.1rem] text-text">Composable primitives</h2>
-      <p class="m-0">
-        Mix containers, axes, grids, gradients, shapes, legends, and tooltips
-        using ordinary React composition.
-      </p>
-    </article>
-    <article class="min-h-[190px] bg-panel p-6">
-      <h2 class="mb-3 text-[1.1rem] text-text">Typed data access</h2>
-      <p class="m-0">
-        Chart keys and accessors are checked by TypeScript, including linear,
-        time, and band scale inputs.
-      </p>
-    </article>
-    <article class="min-h-[190px] bg-panel p-6">
-      <h2 class="mb-3 text-[1.1rem] text-text">Built on D3 scales</h2>
-      <p class="m-0">
-        Chartly keeps the declarative React surface while leaning on D3 for
-        reliable scales, shapes, and chart math.
-      </p>
-    </article>
+  <section class="mb-16" aria-label="Live preview">
+    <h2 class="mb-1 text-2xl font-extrabold text-text">Try it live</h2>
+    <p class="mb-6 max-w-[560px]">
+      Adjust the stroke color, curve, and area fill — the chart and the code
+      update together.
+    </p>
+    <LivePreviewPlayground client:load />
   </section>
-</BaseLayout>
+
+  <ChartTypeStrip /></BaseLayout>
+
+<style>
+  .hero-pattern {
+    background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 75% 85% at 50% 45%, black 0%, black 25%, transparent 90%);
+    -webkit-mask-image: radial-gradient(ellipse 75% 85% at 50% 45%, black 0%, black 25%, transparent 90%);
+  }
+</style>
