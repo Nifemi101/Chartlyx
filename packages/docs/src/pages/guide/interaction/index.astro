@@ -1,0 +1,135 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Interaction · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Interaction</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Interaction</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Making charts respond to the mouse. Chartly ships two tooltip components
+        &mdash; one for Cartesian, one for polar &mdash; plus the raw hover
+        primitives for anything custom.
+      </p>
+    </header>
+
+    <section id="tooltip" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Tooltip</h2>
+      <p class="mb-4">
+        Drop <code>&lt;Tooltip&gt;</code> as the last child of
+        <code>&lt;ChartContainer&gt;</code>. It renders an invisible overlay
+        that captures mouse events, finds the nearest data point, and calls
+        your render function with the point&rsquo;s pixel position and datum.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Tooltip<Row> indicatorStroke="#5eead4" dotFill="#5eead4">
+  {({ x, y, datum }) => (
+    <g transform={\`translate(\${x + 12}, \${y - 50})\`}>
+      <rect width={140} height={44} rx={6} fill="#0f172a" stroke="#334155" />
+      <text x={12} y={20} fontSize={11} fill="#94a3b8">{datum.month}</text>
+      <text x={12} y={36} fontSize={13} fill="#5eead4">\${datum.revenue}</text>
+    </g>
+  )}
+</Tooltip>`} />
+      <p class="mt-6">
+        Placing the tooltip <em>last</em> matters: SVG paints and hit-tests in
+        document order, so the invisible rect ends up on top and catches every
+        pointer event cleanly.
+      </p>
+    </section>
+
+    <section id="polar-tooltip" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">PolarTooltip</h2>
+      <p class="mb-4">
+        The polar equivalent. Reads the currently-hovered slice or polygon from
+        the polar context and passes it to your render function. HTML content
+        via <code>&lt;foreignObject&gt;</code> works well for multi-line pie
+        callouts.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<PolarTooltip<Row>>
+  {({ datum, cx, cy }) => (
+    <foreignObject x={cx - 65} y={cy - 28} width={130} height={56}>
+      <div className="tooltip-card">
+        {datum.category} &mdash; \${datum.revenue}
+      </div>
+    </foreignObject>
+  )}
+</PolarTooltip>`} />
+    </section>
+
+    <section id="nearest-point" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Nearest-point lookup</h2>
+      <p class="mb-4">
+        For linear and time scales, Chartly uses <code>d3-array</code>&rsquo;s
+        <code>bisector</code> &mdash; an <code>O(log n)</code> binary search
+        &mdash; to locate the nearest data point to the mouse. Even with 100,000
+        points, lookup stays sub-microsecond.
+      </p>
+      <p class="mb-4">
+        Band scales fall back to an <code>O(n)</code> pixel-distance loop
+        because there is no meaningful pixel-to-category inverse. Category
+        counts are usually small, so this is fine in practice.
+      </p>
+      <p>
+        Mouse position is read via
+        <code>event.clientX - rect.left</code> against the overlay&rsquo;s
+        bounding rect &mdash; a cross-browser reliable pattern that avoids
+        <code>offsetX</code> quirks on SVG in Firefox.
+      </p>
+    </section>
+
+    <section id="custom-hover" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Custom hover UI</h2>
+      <p class="mb-4">
+        For scenarios where <code>&lt;Tooltip&gt;</code> is too opinionated,
+        you can build your own by combining a plain SVG rect with the chart
+        context. This lets you build crosshairs, multi-series callouts, or
+        highlight overlays.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`function Crosshair() {
+  const { data, xScale, yScale, width, height, margin } = useChartContext();
+  const [active, setActive] = useState<number | null>(null);
+
+  return (
+    <>
+      {active !== null && (
+        <line
+          x1={xScale(data[active].month)}
+          x2={xScale(data[active].month)}
+          y1={margin.top}
+          y2={height - margin.bottom}
+          stroke="#5eead4"
+          strokeDasharray="4 4"
+        />
+      )}
+      <rect
+        x={margin.left} y={margin.top}
+        width={width - margin.left - margin.right}
+        height={height - margin.top - margin.bottom}
+        fill="transparent"
+        onMouseMove={/* ... find nearest index ... */}
+        onMouseLeave={() => setActive(null)}
+      />
+    </>
+  );
+}`} />
+      <p class="mt-6">
+        A public <code>useHoverState</code> hook is on the roadmap for
+        consumers who want the nearest-point math without building the pointer
+        overlay from scratch. Open an issue if you need it now.
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/axes/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Axes &amp; grid
+      </a>
+      <a href="/guide/styling/" class="text-sm text-muted hover:text-text">
+        Styling <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

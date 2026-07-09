@@ -1,0 +1,129 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Helpers · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Helpers</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Helpers</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Small utilities and types that fill in the sharp edges around the
+        components. Nothing here is required, but each one saves a couple of
+        lines in real-world charts.
+      </p>
+    </header>
+
+    <section id="stack-sum" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">stackSum</h2>
+      <p class="mb-4">
+        Computes the maximum accumulated total across all rows for a given set
+        of keys. Use it to set the <code>yDomain</code> on a stacked chart in
+        one line.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { stackSum } from "chartly";
+
+const yMax = stackSum(quarter, ["laptops", "phones", "tablets"]);
+
+<ChartContainer
+  data={quarter}
+  yDomain={[0, yMax]}
+  ...
+>
+  <StackedBar keys={["laptops", "phones", "tablets"]} />
+</ChartContainer>`} />
+      <p class="mt-6">
+        The container&rsquo;s auto-computed domain covers only the largest
+        single key, so without <code>stackSum</code> the top of the stack
+        renders above the chart&rsquo;s top edge and clips.
+      </p>
+    </section>
+
+    <section id="pick-color" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">pickColor</h2>
+      <p class="mb-4">
+        Cycles through a color array by index. Wraps around when your keys
+        exceed the palette length &mdash; safer than <code>colors[i]</code>,
+        which returns <code>undefined</code> past the end.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { pickColor, DEFAULT_STACK_COLORS } from "chartly";
+
+// Safe for any i, even i > colors.length
+const color = pickColor(DEFAULT_STACK_COLORS, i);
+
+// Handy for building a legend from keys:
+{keys.map((key, i) => (
+  <div key={key}>
+    <span style={{ background: pickColor(DEFAULT_STACK_COLORS, i) }} />
+    {key}
+  </div>
+))}`} />
+    </section>
+
+    <section id="default-colors" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">DEFAULT_STACK_COLORS</h2>
+      <p class="mb-4">
+        A 6-color palette (Tailwind-derived) used as the default for
+        <code>StackedBar</code>, <code>StackedArea</code>, <code>Pie</code>,
+        and <code>Radar</code>. Import it and pass to <code>colors</code>, or
+        use as a fallback in your own legend.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { DEFAULT_STACK_COLORS } from "chartly";
+
+// DEFAULT_STACK_COLORS = [
+//   "#3b82f6",  // blue
+//   "#10b981",  // emerald
+//   "#f59e0b",  // amber
+//   "#ef4444",  // red
+//   "#8b5cf6",  // violet
+//   "#06b6d4",  // cyan
+// ]
+
+<StackedBar keys={keys} colors={DEFAULT_STACK_COLORS} />`} />
+      <p class="mt-6">
+        Swap in your own array of any length &mdash; <code>pickColor</code>
+        cycles indefinitely, so shorter palettes still work with wide stacks.
+      </p>
+    </section>
+
+    <section id="keys-of-type" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">KeysOfType</h2>
+      <p class="mb-4">
+        A TypeScript utility that filters <code>keyof T</code> down to the keys
+        whose values match a given type. Powers <code>yKey</code>,
+        <code>valueKey</code>, and other typed-key props so autocomplete only
+        shows fields of the right shape.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import type { KeysOfType } from "chartly";
+
+interface Row {
+  month: string;
+  revenue: number;
+  runningAvg: number;
+}
+
+type NumericKey = KeysOfType<Row, number>;
+// NumericKey = "revenue" | "runningAvg"
+
+// Passing "month" here would be a compile error:
+<ChartContainer<Row> yKey="revenue" ... />`} />
+      <p class="mt-6">
+        Use it in your own components too &mdash; anywhere you accept a
+        <em>key of a specific type</em>, <code>KeysOfType</code> lets you keep
+        autocomplete honest.
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/styling/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Styling
+      </a>
+      <a href="/examples/line/" class="text-sm text-muted hover:text-text">
+        Examples <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

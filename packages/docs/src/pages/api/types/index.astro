@@ -1,0 +1,457 @@
+---
+import { Code } from 'astro:components';
+import ApiLayout from '../../../layouts/ApiLayout.astro';
+
+const title = 'Types · API · Chartly';
+---
+
+<ApiLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">API reference</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Types</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Every TypeScript type Chartly re-exports. Import with
+        <code>import type</code> so nothing lands in your bundle at runtime.
+      </p>
+    </header>
+
+    <section id="chart-container-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">ChartContainerProps</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'ChartContainerProps<T, XS, YS>'}</code></p>
+      <p class="mb-4">
+        The prop shape for <code>&lt;ChartContainer&gt;</code>. Uses a
+        discriminated union so <code>xKey</code>/<code>x</code> and
+        <code>yKey</code>/<code>y</code> are mutually exclusive at the type level.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`type XProps<T, XS extends ScaleType> = { xScaleType: XS } & (
+  | { xKey: KeysOfType<T, ScaleInput<XS>>; x?: never }
+  | { x: (d: T) => ScaleInput<XS>; xKey?: never }
+);
+
+type YProps<T, YS extends ScaleType> = { yScaleType: YS } & (
+  | { yKey: KeysOfType<T, ScaleInput<YS>>; y?: never }
+  | { y: (d: T) => ScaleInput<YS>; yKey?: never }
+);
+
+export type ChartContainerProps<
+  T,
+  XS extends ScaleType = "linear",
+  YS extends ScaleType = "linear",
+> = {
+  data: readonly T[];
+  margin?: Partial<Margin>;
+  minHeight?: number;
+  yDomain?: [number, number];
+  children?: React.ReactNode;
+} & XProps<T, XS> & YProps<T, YS>;`} />
+    </section>
+
+    <section id="chart-context-value" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">ChartContextValue</h2>
+      <p class="mb-4 text-sm text-brand"><code>ChartContextValue</code></p>
+      <p class="mb-4">
+        The context object exposed by <code>useChartContext</code>. Callers
+        pass a generic <code>T</code> to narrow <code>data</code>.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface ChartContextValue {
+  data: readonly unknown[];
+  xScale: XScale;
+  yScale: YScale;
+  xAccessor: (d: unknown) => number | Date | string;
+  yAccessor: (d: unknown) => number | Date | string;
+  width: number;
+  height: number;
+  innerWidth: number;
+  innerHeight: number;
+  margin: Margin;
+}`} />
+    </section>
+
+    <section id="polar-container-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PolarChartContainerProps</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'PolarChartContainerProps<T>'}</code></p>
+      <p class="mb-4">
+        Prop shape for <code>&lt;PolarChartContainer&gt;</code>. Uses a
+        discriminated union that also permits neither
+        <code>valueKey</code> nor <code>value</code> (radar case).
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export type PolarChartContainerProps<T> = {
+  data: readonly T[];
+  padding?: number;
+  innerRadius?: number;
+  minHeight?: number;
+  children?: React.ReactNode;
+} & ValueProps<T>;
+
+// ValueProps<T> allows:
+//   { valueKey: KeysOfType<T, number>; value?: never }
+//   { value: (d: T) => number; valueKey?: never }
+//   { valueKey?: never; value?: never }   // radar`} />
+    </section>
+
+    <section id="polar-context-value" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PolarChartContextValue</h2>
+      <p class="mb-4 text-sm text-brand"><code>PolarChartContextValue</code></p>
+      <Code lang="ts" theme="github-dark" code={`export interface PolarChartContextValue {
+  data: readonly unknown[];
+  valueAccessor: (d: unknown) => number;
+  width: number;
+  height: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  innerRadius: number;
+  padding: number;
+  activeIndex: number | null;
+  setActiveIndex: (i: number | null) => void;
+}`} />
+    </section>
+
+    <section id="shape-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Shape prop types</h2>
+      <p class="mb-4">
+        All shape prop types are generic over the row type <code>T</code>.
+        Cartesian shapes extend a shared <code>YOverride&lt;T&gt;</code>
+        interface for per-shape y accessor overrides.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface LineProps<T = unknown> extends YOverride<T> {
+  stroke?: string;
+  strokeWidth?: number;
+  curve?: CurveType;
+  animate?: boolean;
+  label?: ShapeLabelRender<T>;
+}
+
+export interface AreaProps<T = unknown> extends YOverride<T> {
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  curve?: CurveType;
+  animate?: boolean;
+  label?: ShapeLabelRender<T>;
+}
+
+export interface BarProps<T = unknown> extends YOverride<T> {
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  radius?: number;
+  baseline?: number;
+  animate?: boolean;
+  label?: ShapeLabelRender<T>;
+}
+
+export interface ScatterProps<T = unknown> extends YOverride<T> {
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  radius?: number;
+  animate?: boolean;
+  label?: ShapeLabelRender<T>;
+}
+
+export interface StackedBarProps<T = unknown> {
+  keys: readonly KeysOfType<T, number>[];
+  colors?: readonly string[];
+  radius?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  animate?: boolean;
+}
+
+export interface StackedAreaProps<T = unknown> {
+  keys: readonly KeysOfType<T, number>[];
+  colors?: readonly string[];
+  curve?: CurveType;
+  stroke?: string;
+  strokeWidth?: number;
+  fillOpacity?: number;
+  animate?: boolean;
+}
+
+export interface PieProps<T = unknown> {
+  colors?: readonly string[];
+  stroke?: string;
+  strokeWidth?: number;
+  label?: PieLabelRender<T>;
+}
+
+export interface RadarProps<T = unknown> {
+  axes: readonly KeysOfType<T, number>[];
+  maxValue?: number;
+  fill?: string;
+  fillOpacity?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  showPoints?: boolean;
+  pointRadius?: number;
+  rowIndex?: number;
+  colorByIndex?: number;
+}
+
+export interface RadarGridProps {
+  axesCount: number;
+  rings?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  fill?: string;
+  shape?: "polygon" | "circle";
+}
+
+export interface RadarAxesProps {
+  axes: readonly string[];
+  stroke?: string;
+  strokeWidth?: number;
+  labelFill?: string;
+  labelFontSize?: number;
+  labelOffset?: number;
+}`} />
+    </section>
+
+    <section id="axis-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">AxisProps</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'AxisProps<V>'}</code></p>
+      <p class="mb-4">
+        Shared shape between <code>XAxis</code> and <code>YAxis</code>. The
+        generic <code>V</code> narrows the <code>tickFormatter</code> signature
+        based on scale type.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface AxisProps<V extends TickValue = TickValue> {
+  tickCount?: number;
+  tickFormatter?: TickFormatter<V>;
+  label?: string;
+  labelOffset?: number;
+  stroke?: string;
+  textFill?: string;
+  labelFill?: string;
+}`} />
+    </section>
+
+    <section id="cartesian-grid-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">CartesianGridProps</h2>
+      <p class="mb-4 text-sm text-brand"><code>CartesianGridProps</code></p>
+      <Code lang="ts" theme="github-dark" code={`export interface CartesianGridProps {
+  horizontal?: boolean;
+  vertical?: boolean;
+  xTickCount?: number;
+  yTickCount?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeOpacity?: number;
+  dashArray?: string;
+}`} />
+    </section>
+
+    <section id="tooltip-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">TooltipProps · PolarTooltipProps</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'TooltipProps<T>'}</code>, <code>{'PolarTooltipProps<T>'}</code>
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface TooltipProps<T = unknown> {
+  children: TooltipRender<T>;
+  showIndicator?: boolean;
+  indicatorStroke?: string;
+  indicatorOpacity?: number;
+  dotRadius?: number;
+  dotFill?: string;
+}
+
+export interface PolarTooltipProps<T = unknown> {
+  children: PolarTooltipRender<T>;
+}`} />
+    </section>
+
+    <section id="legend-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">LegendProps · LegendItem</h2>
+      <p class="mb-4 text-sm text-brand"><code>LegendProps</code>, <code>LegendItem</code></p>
+      <Code lang="ts" theme="github-dark" code={`export interface LegendItem {
+  label: string;
+  color: string;
+  shape?: "square" | "circle";
+}
+
+export interface LegendProps {
+  items: readonly LegendItem[];
+  direction?: "row" | "column";
+  gap?: number;
+  fontSize?: number;
+  color?: string;
+  chipSize?: number;
+}`} />
+    </section>
+
+    <section id="linear-gradient-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">LinearGradientProps</h2>
+      <p class="mb-4 text-sm text-brand"><code>LinearGradientProps</code></p>
+      <Code lang="ts" theme="github-dark" code={`export interface LinearGradientProps {
+  id: string;
+  from: string;
+  to: string;
+  fromOpacity?: number;
+  toOpacity?: number;
+  direction?: "vertical" | "horizontal";
+}`} />
+    </section>
+
+    <section id="shape-label-render" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">ShapeLabelRender · ShapeLabelRenderProps</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'ShapeLabelRender<T>'}</code>, <code>{'ShapeLabelRenderProps<T>'}</code>
+      </p>
+      <p class="mb-4">
+        Signature for per-point <code>label</code> render props on
+        <code>Line</code>, <code>Area</code>, <code>Bar</code>, and
+        <code>Scatter</code>.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface ShapeLabelRenderProps<T> {
+  x: number;
+  y: number;
+  datum: T;
+  index: number;
+}
+
+export type ShapeLabelRender<T> = (
+  props: ShapeLabelRenderProps<T>,
+) => React.ReactNode;`} />
+    </section>
+
+    <section id="pie-label-render" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PieLabelRender · PieLabelRenderProps</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'PieLabelRender<T>'}</code>, <code>{'PieLabelRenderProps<T>'}</code>
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface PieLabelRenderProps<T> {
+  centroid: [number, number];
+  cx: number;
+  cy: number;
+  startAngle: number;
+  endAngle: number;
+  datum: T;
+  index: number;
+}
+
+export type PieLabelRender<T> = (
+  props: PieLabelRenderProps<T>,
+) => React.ReactNode;`} />
+    </section>
+
+    <section id="tooltip-state" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">TooltipState · TooltipRender</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'TooltipState<T>'}</code>, <code>{'TooltipRender<T>'}</code>
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface TooltipState<T> {
+  x: number;
+  y: number;
+  datum: T;
+  index: number;
+}
+
+export type TooltipRender<T> = (
+  state: TooltipState<T>,
+) => React.ReactNode;`} />
+    </section>
+
+    <section id="polar-tooltip-state" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PolarTooltipState · PolarTooltipRender</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'PolarTooltipState<T>'}</code>, <code>{'PolarTooltipRender<T>'}</code>
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export interface PolarTooltipState<T> {
+  datum: T;
+  index: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  innerRadius: number;
+}
+
+export type PolarTooltipRender<T> = (
+  state: PolarTooltipState<T>,
+) => React.ReactNode;`} />
+    </section>
+
+    <section id="tick-formatter" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">TickValue · TickFormatter</h2>
+      <p class="mb-4 text-sm text-brand"><code>TickValue</code>, <code>{'TickFormatter<V>'}</code></p>
+      <Code lang="ts" theme="github-dark" code={`export type TickValue = number | Date | string;
+
+export type TickFormatter<V extends TickValue = TickValue> = (
+  value: V,
+  index: number,
+) => string;`} />
+    </section>
+
+    <section id="curve-type" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">CurveType</h2>
+      <p class="mb-4 text-sm text-brand"><code>CurveType</code></p>
+      <p class="mb-4">
+        Curve name accepted by <code>Line</code>, <code>Area</code>, and
+        <code>StackedArea</code>.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export type CurveType = "linear" | "monotone" | "step";`} />
+    </section>
+
+    <section id="scale-type" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">ScaleType · ScaleInput</h2>
+      <p class="mb-4 text-sm text-brand"><code>ScaleType</code>, <code>{'ScaleInput<S>'}</code></p>
+      <p class="mb-4">
+        <code>ScaleInput</code> is a conditional type that maps a scale name to
+        its expected input value type. Powers the discriminated union in
+        <code>ChartContainerProps</code>.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export type ScaleType = "linear" | "time" | "band";
+
+export type ScaleInput<S extends ScaleType> = S extends "linear"
+  ? number
+  : S extends "time"
+  ? Date
+  : S extends "band"
+  ? string
+  : never;`} />
+    </section>
+
+    <section id="margin" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Margin</h2>
+      <p class="mb-4 text-sm text-brand"><code>Margin</code></p>
+      <Code lang="ts" theme="github-dark" code={`export interface Margin {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}`} />
+    </section>
+
+    <section id="keys-of-type" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">KeysOfType</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'KeysOfType<T, V>'}</code></p>
+      <p class="mb-4">
+        Utility type that filters <code>keyof T</code> down to keys whose
+        values extend <code>V</code>. Used throughout Chartly to constrain key
+        props (<code>yKey</code>, <code>valueKey</code>, stack <code>keys</code>,
+        radar <code>axes</code>).
+      </p>
+      <Code lang="ts" theme="github-dark" code={`export type KeysOfType<T, V> = {
+  [K in keyof T]-?: T[K] extends V ? K : never;
+}[keyof T];
+
+// Example:
+interface Row { month: string; revenue: number; runningAvg: number }
+type NumericKey = KeysOfType<Row, number>;   // "revenue" | "runningAvg"
+type StringKey  = KeysOfType<Row, string>;   // "month"`} />
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/api/helpers/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Helpers
+      </a>
+      <a href="/api/" class="text-sm text-muted hover:text-text">
+        Back to overview <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</ApiLayout>

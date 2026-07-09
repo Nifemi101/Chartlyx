@@ -1,0 +1,69 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { exampleCategories } from '../data/examples';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+
+<BaseLayout title={title}>
+  <div class="mx-[-1.5rem] flex flex-col gap-8 lg:flex-row lg:gap-10">
+    <aside class="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto">
+      <nav class="guide-nav px-6 pb-8 lg:pl-6 lg:pr-2" aria-label="Examples navigation">
+        <a
+          href="/examples/"
+          class={
+            currentPath === '/examples'
+              ? 'mb-6 block text-xl font-semibold text-brand-strong'
+              : 'mb-6 block text-xl font-semibold text-text transition-colors hover:text-brand-strong'
+          }
+        >
+          Examples
+        </a>
+        {exampleCategories.map((category) => {
+          const categoryActive = currentPath.startsWith(category.basePath);
+          return (
+            <div class="mb-6">
+              <a
+                href={category.firstExampleHref}
+                class={
+                  categoryActive
+                    ? 'mb-2 block text-[0.7rem] font-semibold uppercase tracking-wider text-brand-strong'
+                    : 'mb-2 block text-[0.7rem] font-semibold uppercase tracking-wider text-text transition-colors hover:text-brand-strong'
+                }
+              >
+                {category.heading}
+              </a>
+              <ul class="flex flex-col gap-0.5 border-l border-border">
+                {category.examples.map((link) => {
+                  const linkActive = currentPath === link.href.replace(/\/$/, '');
+                  return (
+                    <li>
+                      <a
+                        class={
+                          linkActive
+                            ? 'block -ml-px border-l-2 border-brand-strong pl-3 py-1 text-sm font-medium text-text'
+                            : 'block -ml-px border-l-2 border-transparent pl-3 py-1 text-sm text-muted transition-colors hover:border-zinc-600 hover:text-text'
+                        }
+                        href={link.href}
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+
+    <article class="min-w-0 flex-1 px-6 pb-16">
+      <slot />
+    </article>
+  </div>
+</BaseLayout>

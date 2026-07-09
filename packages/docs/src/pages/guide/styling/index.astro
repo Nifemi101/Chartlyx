@@ -1,0 +1,110 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Styling · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Styling</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Styling</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Chartly emits bare SVG. There is no theme provider, no CSS-in-JS, no
+        style props with magic behavior. Every visual choice is a plain SVG
+        attribute you can tune per component.
+      </p>
+    </header>
+
+    <section id="gradient" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">LinearGradient</h2>
+      <p class="mb-4">
+        A convenience wrapper for SVG <code>&lt;defs&gt;</code> gradients &mdash;
+        the fading fill under an <code>&lt;Area&gt;</code> is the classic use
+        case. Reference it from any <code>fill</code> or <code>stroke</code>
+        prop as <code>url(#your-id)</code>.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<LinearGradient
+  id="fade"
+  from="#5eead4"
+  to="#5eead4"
+  fromOpacity={0.35}
+  toOpacity={0}
+  direction="vertical"    // default; "horizontal" for left → right
+/>
+<Area fill="url(#fade)" />`} />
+      <p class="mt-6">
+        The component is opt-in convenience &mdash; if you need something more
+        exotic (radial gradients, multi-stop, pattern fills), drop your own
+        <code>&lt;defs&gt;</code> block into the chart&rsquo;s SVG tree instead.
+      </p>
+    </section>
+
+    <section id="palettes" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Colors &amp; palettes</h2>
+      <p class="mb-4">
+        Colors are plain SVG values &mdash; hex, <code>rgb()</code>, HSL, CSS
+        variables, or gradient URLs. Every shape accepts <code>fill</code>,
+        <code>fillOpacity</code>, <code>stroke</code>, and <code>strokeWidth</code>
+        (Line is stroke-only).
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Bar fill="var(--accent)" fillOpacity={0.85} />
+<Line stroke="hsl(180 65% 55%)" strokeWidth={2} />
+<Area fill="url(#gradient)" />`} />
+      <p class="mt-6">
+        For multi-series shapes (StackedBar, StackedArea, Pie), pass a
+        <code>colors</code> array. Chartly ships a 6-color default palette
+        as <a href="/guide/helpers/#default-colors" class="text-text underline decoration-border underline-offset-4 hover:decoration-brand-strong">DEFAULT_STACK_COLORS</a>.
+      </p>
+    </section>
+
+    <section id="responsive" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Responsive charts</h2>
+      <p class="mb-4">
+        Every container uses <code>ResizeObserver</code> internally and re-renders
+        on parent size changes. There are no <code>width</code> or <code>height</code>
+        props to manage. Just size the parent with CSS.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<div style={{ width: "100%", height: 320 }}>
+  <ChartContainer ...>
+    ...
+  </ChartContainer>
+</div>`} />
+      <p class="mt-6">
+        The chart fills the parent, respects the parent&rsquo;s box constraints,
+        and re-scales tick counts automatically as the width changes. Great for
+        card layouts, dashboards, or any grid that reflows on breakpoints.
+      </p>
+    </section>
+
+    <section id="dark-theme" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Dark theme</h2>
+      <p class="mb-4">
+        There is no <code>theme</code> prop and no theme provider. Chartly
+        emits a bare <code>&lt;svg&gt;</code> with your styles &mdash; light,
+        dark, or otherwise. For dark themes, set axis <code>stroke</code>
+        and <code>textFill</code> to grays, use muted grid stroke, and pick
+        accent colors that pop on your background.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<XAxis stroke="#64748b" textFill="#cbd5e1" />
+<YAxis stroke="#64748b" textFill="#cbd5e1" />
+<CartesianGrid stroke="#334155" strokeOpacity={0.75} dashArray="4 6" />
+<Line stroke="#5eead4" strokeWidth={2} curve="monotone" />`} />
+      <p class="mt-6">
+        Because there&rsquo;s no theme lock-in, hooking chart colors up to CSS
+        custom properties &mdash; and having your app-wide dark-mode toggle
+        recolor charts for free &mdash; is a one-liner.
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/interaction/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Interaction
+      </a>
+      <a href="/guide/helpers/" class="text-sm text-muted hover:text-text">
+        Helpers <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

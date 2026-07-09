@@ -8,28 +8,35 @@ const title = 'Chartly documentation';
 ---
 
 <BaseLayout title={title}>
-  <section class="relative mb-16 flex min-h-[calc(100vh-64px)] flex-col items-center justify-center px-0 py-8 text-center sm:min-h-auto sm:justify-start sm:py-8">
-    <div class="hero-pattern w-full">
-      <p class="mb-4 text-[0.85rem] font-extrabold uppercase text-brand-strong">
-        TypeScript-first. D3-powered. React-native.
-      </p>
-      <h1 class="m-0 text-[clamp(4rem,10vw,6.75rem)] font-extrabold leading-[0.95] text-[#67e8f9]">
-        Chartly
+  <section class="relative mb-20 flex flex-col items-center overflow-hidden px-0 pt-14 pb-8 text-center sm:pt-20">
+    <div class="hero-dots" aria-hidden="true"></div>
+    <div class="relative w-full">
+      <h1 class="m-0 text-[clamp(2.75rem,7vw,4.75rem)] font-semibold leading-[1.05] tracking-tight text-text">
+        Composable charts,<br />
+        <span class="text-muted">built for React.</span>
       </h1>
-      <p class="mx-auto mt-7 max-w-[720px] text-[clamp(1.15rem,2.5vw,1.55rem)] leading-[1.45] text-text">
-        A composable charting library for building polished, typed SVG charts with
-        React components.
+      <p class="mx-auto mt-6 max-w-[620px] text-[clamp(1rem,1.6vw,1.15rem)] leading-[1.55] text-muted">
+        Polished, typed SVG charts you can drop into any React app &mdash; and
+        style however you want.
       </p>
-      <div class="mt-8 flex justify-center" aria-label="Primary actions">
+      <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" aria-label="Primary actions">
         <a
-          class="inline-flex min-w-[min(100%,280px)] items-center justify-center rounded-full bg-[#2f9ce5] px-6 py-3.5 font-extrabold text-white"
+          class="inline-flex items-center justify-center rounded-md bg-white px-5 py-2.5 text-sm font-semibold !text-black transition-colors hover:bg-zinc-200"
           href="/examples/line/"
         >
-          <code class="bg-transparent p-0 text-[0.85rem] text-[#eff6ff]">npm install chartly</code>
+          Get started
+          <span class="ml-1.5" aria-hidden="true">&rarr;</span>
+        </a>
+        <a
+          class="group inline-flex items-center gap-2 rounded-md border border-border bg-panel px-4 py-2.5 text-sm font-mono text-muted transition-colors hover:border-zinc-600 hover:text-text"
+          href="https://www.npmjs.com/package/chartly"
+        >
+          <span class="text-zinc-600 group-hover:text-zinc-500">$</span>
+          <span>npm install chartly</span>
         </a>
       </div>
     </div>
-    <div class="mt-10 w-full max-w-[760px]">
+    <div class="mt-16 w-full max-w-[760px]">
       <HomeChartSwitcher client:load />
     </div>
   </section>
@@ -46,10 +53,15 @@ const title = 'Chartly documentation';
   <ChartTypeStrip /></BaseLayout>
 
 <style>
-  .hero-pattern {
-    background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1px, transparent 1px);
-    background-size: 28px 28px;
-    mask-image: radial-gradient(ellipse 75% 85% at 50% 45%, black 0%, black 25%, transparent 90%);
-    -webkit-mask-image: radial-gradient(ellipse 75% 85% at 50% 45%, black 0%, black 25%, transparent 90%);
+  .hero-dots {
+    position: absolute;
+    inset: -40px -20vw 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: 0 0;
+    mask-image: radial-gradient(ellipse 55% 60% at 50% 35%, black 0%, rgba(0, 0, 0, 0.75) 35%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 55% 60% at 50% 35%, black 0%, rgba(0, 0, 0, 0.75) 35%, transparent 75%);
   }
 </style>

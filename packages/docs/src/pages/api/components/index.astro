@@ -1,0 +1,406 @@
+---
+import { Code } from 'astro:components';
+import ApiLayout from '../../../layouts/ApiLayout.astro';
+import PropsTable from '../../../components/PropsTable.astro';
+
+const title = 'Components · API · Chartly';
+---
+
+<ApiLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">API reference</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Components</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Every component Chartly renders. Props tables are generated straight
+        from the source &mdash; if a prop appears here, it exists.
+      </p>
+    </header>
+
+    <!-- ═══════════ CHART CONTAINER ═══════════ -->
+    <section id="chart-container" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">ChartContainer</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'<ChartContainer<T>>'}</code>
+      </p>
+      <p class="mb-4">
+        The Cartesian root component. Measures its DOM size via
+        <code>ResizeObserver</code>, builds x/y scales, resolves accessor
+        functions, and provides everything to descendants via context.
+      </p>
+      <PropsTable rows={[
+        { name: 'data', type: 'readonly T[]', required: true, description: 'Rows to plot. Generic over your row shape <code>T</code>.' },
+        { name: 'xScaleType', type: '"linear" | "time" | "band"', required: true, description: 'Type of x-scale to build.' },
+        { name: 'yScaleType', type: '"linear" | "time" | "band"', required: true, description: 'Type of y-scale to build.' },
+        { name: 'xKey', type: 'KeysOfType<T, ScaleInput<XS>>', description: 'Field name on <code>T</code> for the x value. Mutually exclusive with <code>x</code>.' },
+        { name: 'x', type: '(d: T) => ScaleInput<XS>', description: 'Accessor function for the x value. Mutually exclusive with <code>xKey</code>.' },
+        { name: 'yKey', type: 'KeysOfType<T, ScaleInput<YS>>', description: 'Field name on <code>T</code> for the y value. Mutually exclusive with <code>y</code>.' },
+        { name: 'y', type: '(d: T) => ScaleInput<YS>', description: 'Accessor function for the y value. Mutually exclusive with <code>yKey</code>.' },
+        { name: 'margin', type: 'Partial<Margin>', default: 'DEFAULT_MARGIN', description: 'Overrides the built-in margins. Merged with defaults.' },
+        { name: 'minHeight', type: 'number', default: '300', description: 'Fallback height before <code>ResizeObserver</code> reports a real size.' },
+        { name: 'yDomain', type: '[number, number]', description: 'Explicit y-domain. Required for stacked charts; otherwise inferred from data.' },
+        { name: 'children', type: 'ReactNode', description: 'Shapes, axes, grid, tooltip &mdash; anything that reads chart context.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ LINE ═══════════ -->
+    <section id="line" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Line</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Line<T>>'}</code></p>
+      <p class="mb-4">
+        Renders a single <code>&lt;path&gt;</code> connecting the data points.
+        Undefined or <code>NaN</code> values create gaps rather than breaking
+        the path.
+      </p>
+      <PropsTable rows={[
+        { name: 'stroke', type: 'string', default: '"currentColor"', description: 'Line color.' },
+        { name: 'strokeWidth', type: 'number', default: '2', description: 'Line width in pixels.' },
+        { name: 'curve', type: 'CurveType', default: '"linear"', description: 'Interpolation: <code>linear</code>, <code>monotone</code>, or <code>step</code>.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+        { name: 'label', type: 'ShapeLabelRender<T>', description: 'Optional per-point label render prop.' },
+        { name: 'y', type: '(d: T) => number', description: 'Override the container y-accessor for this shape (composed charts).' },
+        { name: 'yKey', type: 'KeysOfType<T, number>', description: 'Field-name form of <code>y</code>. Mutually exclusive.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ AREA ═══════════ -->
+    <section id="area" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Area</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Area<T>>'}</code></p>
+      <p class="mb-4">
+        Filled polygon between the line and the plot bottom. Pair with
+        <code>&lt;LinearGradient&gt;</code> for fading fills.
+      </p>
+      <PropsTable rows={[
+        { name: 'fill', type: 'string', default: '"currentColor"', description: 'Fill color or gradient reference (<code>url(#id)</code>).' },
+        { name: 'fillOpacity', type: 'number', default: '1', description: 'Opacity of the fill (0&ndash;1).' },
+        { name: 'stroke', type: 'string', default: '"none"', description: 'Optional stroke around the area outline.' },
+        { name: 'strokeWidth', type: 'number', default: '0', description: 'Stroke width in pixels.' },
+        { name: 'curve', type: 'CurveType', default: '"linear"', description: 'Interpolation for the top edge.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+        { name: 'label', type: 'ShapeLabelRender<T>', description: 'Optional per-point label render prop.' },
+        { name: 'y', type: '(d: T) => number', description: 'Override the container y-accessor.' },
+        { name: 'yKey', type: 'KeysOfType<T, number>', description: 'Field-name form of <code>y</code>.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ BAR ═══════════ -->
+    <section id="bar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Bar</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Bar<T>>'}</code></p>
+      <p class="mb-4">
+        One rectangle per data row. Uses <code>xScale.bandwidth()</code> for
+        width, so requires a <code>band</code> x-scale. Falls back to a 20px
+        fixed width otherwise.
+      </p>
+      <PropsTable rows={[
+        { name: 'fill', type: 'string', default: '"currentColor"', description: 'Bar fill.' },
+        { name: 'fillOpacity', type: 'number', default: '1', description: 'Fill opacity.' },
+        { name: 'stroke', type: 'string', default: '"none"', description: 'Bar stroke.' },
+        { name: 'strokeWidth', type: 'number', default: '0', description: 'Stroke width.' },
+        { name: 'radius', type: 'number', default: '0', description: 'Corner radius (SVG <code>rx</code>).' },
+        { name: 'baseline', type: 'number', default: '0', description: 'Y-value bars start from. Clamped to the plot area.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+        { name: 'label', type: 'ShapeLabelRender<T>', description: 'Optional per-bar label render prop.' },
+        { name: 'y', type: '(d: T) => number', description: 'Override the container y-accessor.' },
+        { name: 'yKey', type: 'KeysOfType<T, number>', description: 'Field-name form of <code>y</code>.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ SCATTER ═══════════ -->
+    <section id="scatter" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Scatter</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Scatter<T>>'}</code></p>
+      <p class="mb-4">
+        One <code>&lt;circle&gt;</code> per data point, positioned at
+        <code>(xScale(x), yScale(y))</code>.
+      </p>
+      <PropsTable rows={[
+        { name: 'fill', type: 'string', default: '"currentColor"', description: 'Dot fill.' },
+        { name: 'fillOpacity', type: 'number', default: '1', description: 'Fill opacity.' },
+        { name: 'stroke', type: 'string', default: '"none"', description: 'Dot stroke.' },
+        { name: 'strokeWidth', type: 'number', default: '0', description: 'Stroke width.' },
+        { name: 'radius', type: 'number', default: '4', description: 'Dot radius in pixels.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+        { name: 'label', type: 'ShapeLabelRender<T>', description: 'Optional per-point label render prop.' },
+        { name: 'y', type: '(d: T) => number', description: 'Override the container y-accessor.' },
+        { name: 'yKey', type: 'KeysOfType<T, number>', description: 'Field-name form of <code>y</code>.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ STACKED BAR ═══════════ -->
+    <section id="stacked-bar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">StackedBar</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<StackedBar<T>>'}</code></p>
+      <p class="mb-4">
+        Wraps <code>d3-shape.stack()</code>. Only the top segment gets the
+        corner radius so intra-bar gaps stay flush.
+      </p>
+      <PropsTable rows={[
+        { name: 'keys', type: 'readonly KeysOfType<T, number>[]', required: true, description: 'Numeric fields on <code>T</code> to stack, in draw order.' },
+        { name: 'colors', type: 'readonly string[]', default: 'DEFAULT_STACK_COLORS', description: 'Palette. Cycles via <code>pickColor</code> if keys > colors.' },
+        { name: 'radius', type: 'number', default: '0', description: 'Corner radius applied only to the top segment.' },
+        { name: 'stroke', type: 'string', default: '"none"', description: 'Per-segment stroke.' },
+        { name: 'strokeWidth', type: 'number', default: '0', description: 'Stroke width.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ STACKED AREA ═══════════ -->
+    <section id="stacked-area" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">StackedArea</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<StackedArea<T>>'}</code></p>
+      <p class="mb-4">
+        Same stacking mechanic as <code>StackedBar</code> but drawn as
+        <code>&lt;path&gt;</code> segments with an optional curve.
+      </p>
+      <PropsTable rows={[
+        { name: 'keys', type: 'readonly KeysOfType<T, number>[]', required: true, description: 'Numeric fields on <code>T</code> to stack.' },
+        { name: 'colors', type: 'readonly string[]', default: 'DEFAULT_STACK_COLORS', description: 'Palette.' },
+        { name: 'curve', type: 'CurveType', default: '"linear"', description: 'Interpolation between accumulated points.' },
+        { name: 'stroke', type: 'string', default: '"none"', description: 'Per-series stroke.' },
+        { name: 'strokeWidth', type: 'number', default: '0', description: 'Stroke width.' },
+        { name: 'fillOpacity', type: 'number', default: '1', description: 'Opacity applied to each series fill.' },
+        { name: 'animate', type: 'boolean', default: 'false', description: 'Enables the built-in mount animation.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ XAXIS ═══════════ -->
+    <section id="xaxis" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">XAxis</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<XAxis />'}</code></p>
+      <p class="mb-4">
+        Horizontal axis rendered at the bottom of the plot area. Tick values
+        come from <code>xScale.ticks()</code> for linear/time scales, or
+        <code>xScale.domain()</code> for band scales.
+      </p>
+      <PropsTable rows={[
+        { name: 'tickCount', type: 'number', description: 'Suggested tick count for linear/time scales. Ignored for band.' },
+        { name: 'tickFormatter', type: 'TickFormatter', description: 'Function to format each tick&rsquo;s display text.' },
+        { name: 'label', type: 'string', description: 'Optional axis title.' },
+        { name: 'labelOffset', type: 'number', description: 'Distance from axis to title in pixels.' },
+        { name: 'stroke', type: 'string', description: 'Axis line and tick stroke color.' },
+        { name: 'textFill', type: 'string', description: 'Tick text color, independent of <code>stroke</code>.' },
+        { name: 'labelFill', type: 'string', description: 'Axis title text color.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ YAXIS ═══════════ -->
+    <section id="yaxis" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">YAxis</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<YAxis />'}</code></p>
+      <p class="mb-4">
+        Vertical axis on the left. Same props as <code>XAxis</code>; the axis
+        title is rotated <code>&minus;90&deg;</code>.
+      </p>
+      <PropsTable rows={[
+        { name: 'tickCount', type: 'number', description: 'Suggested tick count for linear/time scales.' },
+        { name: 'tickFormatter', type: 'TickFormatter', description: 'Function to format each tick.' },
+        { name: 'label', type: 'string', description: 'Optional axis title.' },
+        { name: 'labelOffset', type: 'number', description: 'Distance from axis to title.' },
+        { name: 'stroke', type: 'string', description: 'Axis line and tick color.' },
+        { name: 'textFill', type: 'string', description: 'Tick text color.' },
+        { name: 'labelFill', type: 'string', description: 'Axis title text color.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ CARTESIAN GRID ═══════════ -->
+    <section id="cartesian-grid" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">CartesianGrid</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<CartesianGrid />'}</code></p>
+      <p class="mb-4">
+        Background guide lines. Place before shapes so lines paint underneath.
+      </p>
+      <PropsTable rows={[
+        { name: 'horizontal', type: 'boolean', default: 'true', description: 'Draw horizontal grid lines.' },
+        { name: 'vertical', type: 'boolean', default: 'true', description: 'Draw vertical grid lines.' },
+        { name: 'xTickCount', type: 'number', default: '5', description: 'Suggested vertical-line count for linear/time x-scales.' },
+        { name: 'yTickCount', type: 'number', default: '5', description: 'Suggested horizontal-line count for linear/time y-scales.' },
+        { name: 'stroke', type: 'string', description: 'Grid line color.' },
+        { name: 'strokeWidth', type: 'number', description: 'Grid line width.' },
+        { name: 'strokeOpacity', type: 'number', description: 'Grid line opacity.' },
+        { name: 'dashArray', type: 'string', description: 'SVG <code>stroke-dasharray</code>. Use <code>"none"</code> for solid.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ LINEAR GRADIENT ═══════════ -->
+    <section id="linear-gradient" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">LinearGradient</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<LinearGradient />'}</code></p>
+      <p class="mb-4">
+        Convenience wrapper for SVG <code>&lt;defs&gt;</code> gradients.
+        Reference the resulting gradient from any <code>fill</code> or
+        <code>stroke</code> as <code>url(#id)</code>.
+      </p>
+      <PropsTable rows={[
+        { name: 'id', type: 'string', required: true, description: 'DOM id used to reference the gradient.' },
+        { name: 'from', type: 'string', required: true, description: 'First stop color.' },
+        { name: 'to', type: 'string', required: true, description: 'Last stop color.' },
+        { name: 'fromOpacity', type: 'number', default: '1', description: 'Opacity of the first stop.' },
+        { name: 'toOpacity', type: 'number', default: '0', description: 'Opacity of the last stop.' },
+        { name: 'direction', type: '"vertical" | "horizontal"', default: '"vertical"', description: 'Gradient direction.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ TOOLTIP ═══════════ -->
+    <section id="tooltip" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Tooltip</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Tooltip<T>>'}</code></p>
+      <p class="mb-4">
+        Nearest-point hover tooltip. Place as the <em>last</em> child of
+        <code>&lt;ChartContainer&gt;</code> so its invisible overlay ends up on
+        top and catches pointer events cleanly.
+      </p>
+      <PropsTable rows={[
+        { name: 'children', type: 'TooltipRender<T>', required: true, description: 'Render function called with <code>{ x, y, datum, index }</code>.' },
+        { name: 'showIndicator', type: 'boolean', default: 'true', description: 'Draw the guide line + dot at the active point.' },
+        { name: 'indicatorStroke', type: 'string', description: 'Color of the guide line.' },
+        { name: 'indicatorOpacity', type: 'number', description: 'Opacity of the guide line.' },
+        { name: 'dotRadius', type: 'number', description: 'Indicator dot radius in pixels.' },
+        { name: 'dotFill', type: 'string', description: 'Indicator dot color.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ LEGEND ═══════════ -->
+    <section id="legend" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Legend</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Legend />'}</code></p>
+      <p class="mb-4">
+        A standalone SVG legend with color chips. Place inside any chart, or
+        wrap in its own <code>&lt;svg&gt;</code> next to the chart.
+      </p>
+      <PropsTable rows={[
+        { name: 'items', type: 'readonly LegendItem[]', required: true, description: 'Array of <code>{ label, color, shape? }</code>.' },
+        { name: 'direction', type: '"row" | "column"', default: '"row"', description: 'Layout direction.' },
+        { name: 'gap', type: 'number', description: 'Space between items in pixels.' },
+        { name: 'fontSize', type: 'number', description: 'Text size in pixels.' },
+        { name: 'color', type: 'string', description: 'Label text color.' },
+        { name: 'chipSize', type: 'number', description: 'Color chip size in pixels.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ POLAR CHART CONTAINER ═══════════ -->
+    <section id="polar-container" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PolarChartContainer</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>{'<PolarChartContainer<T>>'}</code>
+      </p>
+      <p class="mb-4">
+        Polar root component for pie, donut, and radar charts. Measures its own
+        size, computes <code>cx</code>, <code>cy</code>, and outer
+        <code>radius</code>, and manages active-slice state for tooltips.
+      </p>
+      <PropsTable rows={[
+        { name: 'data', type: 'readonly T[]', required: true, description: 'Rows to plot.' },
+        { name: 'valueKey', type: 'KeysOfType<T, number>', description: 'Numeric field for pie/donut slice sizes. Omit for Radar.' },
+        { name: 'value', type: '(d: T) => number', description: 'Accessor form of <code>valueKey</code>.' },
+        { name: 'innerRadius', type: 'number', default: '0', description: '<code>0</code> = pie, positive = donut.' },
+        { name: 'padding', type: 'number', default: '20', description: 'Gap between container edge and chart.' },
+        { name: 'minHeight', type: 'number', description: 'Fallback height before ResizeObserver reports a real size.' },
+        { name: 'children', type: 'ReactNode', description: 'Pie, Radar, RadarGrid, RadarAxes, PolarTooltip.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ PIE ═══════════ -->
+    <section id="pie" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Pie</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Pie<T>>'}</code></p>
+      <p class="mb-4">
+        Pie or donut chart. Slice sweep angles are computed by
+        <code>d3.pie()</code> with <code>.sort(null)</code>, preserving data
+        order. Hovering a slice sets the container&rsquo;s active index for
+        <code>&lt;PolarTooltip&gt;</code>.
+      </p>
+      <PropsTable rows={[
+        { name: 'colors', type: 'readonly string[]', default: 'DEFAULT_STACK_COLORS', description: 'Palette cycled per slice.' },
+        { name: 'stroke', type: 'string', default: '"white"', description: 'Border between slices.' },
+        { name: 'strokeWidth', type: 'number', default: '2', description: 'Slice border width.' },
+        { name: 'label', type: 'PieLabelRender<T>', description: 'Per-slice label render prop. Receives <code>centroid</code>, angles, datum.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ RADAR ═══════════ -->
+    <section id="radar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">Radar</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<Radar<T>>'}</code></p>
+      <p class="mb-4">
+        Closed polygon connecting one row&rsquo;s values across N numeric axes.
+        Multiple <code>&lt;Radar&gt;</code> children with different
+        <code>rowIndex</code> props overlay for comparisons.
+      </p>
+      <PropsTable rows={[
+        { name: 'axes', type: 'readonly KeysOfType<T, number>[]', required: true, description: 'Ordered list of numeric fields, one per axis.' },
+        { name: 'maxValue', type: 'number', description: 'Upper bound for radial scaling. If omitted, computed from data.' },
+        { name: 'fill', type: 'string', description: 'Polygon fill.' },
+        { name: 'fillOpacity', type: 'number', description: 'Fill opacity.' },
+        { name: 'stroke', type: 'string', description: 'Polygon stroke.' },
+        { name: 'strokeWidth', type: 'number', description: 'Stroke width.' },
+        { name: 'showPoints', type: 'boolean', description: 'Draw a dot at each axis intersection.' },
+        { name: 'pointRadius', type: 'number', description: 'Radius of the intersection dots.' },
+        { name: 'rowIndex', type: 'number', default: '0', description: 'Which data row to plot.' },
+        { name: 'colorByIndex', type: 'number', description: 'When set, picks fill/stroke from <code>DEFAULT_STACK_COLORS</code> by index.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ RADAR GRID ═══════════ -->
+    <section id="radar-grid" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">RadarGrid</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<RadarGrid />'}</code></p>
+      <p class="mb-4">
+        Concentric background rings. Place first inside
+        <code>PolarChartContainer</code> so it paints behind spokes and
+        polygons.
+      </p>
+      <PropsTable rows={[
+        { name: 'axesCount', type: 'number', required: true, description: 'Number of axes on the chart (drives polygon shape).' },
+        { name: 'rings', type: 'number', default: '5', description: 'How many concentric rings to draw.' },
+        { name: 'stroke', type: 'string', default: '"#e5e7eb"', description: 'Ring stroke color.' },
+        { name: 'strokeWidth', type: 'number', default: '1', description: 'Ring stroke width.' },
+        { name: 'fill', type: 'string', default: '"none"', description: 'Fill applied to each ring.' },
+        { name: 'shape', type: '"polygon" | "circle"', default: '"polygon"', description: 'Ring shape.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ RADAR AXES ═══════════ -->
+    <section id="radar-axes" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">RadarAxes</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<RadarAxes />'}</code></p>
+      <p class="mb-4">
+        Spokes from center to outer radius, plus labels beyond each endpoint.
+        Text anchor flips based on angular position so labels never crowd the
+        center.
+      </p>
+      <PropsTable rows={[
+        { name: 'axes', type: 'readonly string[]', required: true, description: 'Axis labels, one per spoke.' },
+        { name: 'stroke', type: 'string', default: '"#9ca3af"', description: 'Spoke color.' },
+        { name: 'strokeWidth', type: 'number', default: '1', description: 'Spoke width.' },
+        { name: 'labelFill', type: 'string', default: '"#374151"', description: 'Label text color.' },
+        { name: 'labelFontSize', type: 'number', default: '11', description: 'Label text size.' },
+        { name: 'labelOffset', type: 'number', default: '12', description: 'Distance from spoke tip to label in pixels.' },
+      ]} />
+    </section>
+
+    <!-- ═══════════ POLAR TOOLTIP ═══════════ -->
+    <section id="polar-tooltip" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">PolarTooltip</h2>
+      <p class="mb-4 text-sm text-brand"><code>{'<PolarTooltip<T>>'}</code></p>
+      <p class="mb-4">
+        Hover tooltip driven by the polar container&rsquo;s
+        <code>activeIndex</code> state. Renders nothing when no slice or
+        polygon is hovered.
+      </p>
+      <PropsTable rows={[
+        { name: 'children', type: 'PolarTooltipRender<T>', required: true, description: 'Render function called with <code>{ datum, index, cx, cy, radius, innerRadius }</code>.' },
+      ]} />
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/api/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Overview
+      </a>
+      <a href="/api/hooks/" class="text-sm text-muted hover:text-text">
+        Hooks <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</ApiLayout>

@@ -1,0 +1,140 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Core concepts · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Core concepts</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Core concepts</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        The four ideas &mdash; container, scales, context, and the render-prop pattern
+        &mdash; underneath every Chartly chart. Learn these once and every shape,
+        axis, and interaction component becomes predictable.
+      </p>
+    </header>
+
+    <section id="chart-container" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">ChartContainer</h2>
+      <p class="mb-4">
+        The Cartesian entry point. It does four things:
+      </p>
+      <ol class="mb-4 ml-6 list-decimal space-y-1 text-muted">
+        <li>Measures its own DOM size via <code>ResizeObserver</code>.</li>
+        <li>Builds x and y scales from your data and props.</li>
+        <li>Resolves <code>xKey</code> / <code>yKey</code> shortcuts into accessor functions.</li>
+        <li>Provides everything above to descendants through React context.</li>
+      </ol>
+      <p class="mb-4">
+        You can specify axes by field name (<code>xKey</code>) or by function
+        (<code>x</code>). Field-name form is fully typed against your row shape.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`// Two equivalent ways to specify axes:
+<ChartContainer xKey="date" xScaleType="time" ... />
+<ChartContainer x={(d) => d.date} xScaleType="time" ... />`} />
+    </section>
+
+    <section id="scales" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Scales</h2>
+      <p class="mb-4">
+        A scale is a function that maps <em>data values</em> to <em>pixel positions</em>.
+        Chartly wraps three D3 scale types, chosen by the <code>xScaleType</code> /
+        <code>yScaleType</code> props:
+      </p>
+      <div class="my-6 overflow-hidden rounded-lg border border-border">
+        <table class="w-full text-sm">
+          <thead class="bg-panel-soft">
+            <tr>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Type</th>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Data</th>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Use for</th>
+            </tr>
+          </thead>
+          <tbody class="text-muted">
+            <tr><td class="border-b border-border px-4 py-2"><code>linear</code></td><td class="border-b border-border px-4 py-2">Numbers</td><td class="border-b border-border px-4 py-2">Revenue, counts, temperature</td></tr>
+            <tr><td class="border-b border-border px-4 py-2"><code>time</code></td><td class="border-b border-border px-4 py-2">Dates</td><td class="border-b border-border px-4 py-2">Time series</td></tr>
+            <tr><td class="px-4 py-2"><code>band</code></td><td class="px-4 py-2">Category strings</td><td class="px-4 py-2">Bar charts, discrete x-axes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The domain is inferred from your data automatically; pass an explicit
+        <code>yDomain</code> to override (required for stacked charts).
+      </p>
+    </section>
+
+    <section id="context" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">The context</h2>
+      <p class="mb-4">
+        Every Cartesian shape reads its data through React context, not props.
+        This means adding a <code>&lt;Line&gt;</code> or <code>&lt;Bar&gt;</code>
+        never involves re-passing <code>data</code>, <code>xScale</code>, etc.
+        For custom components, use the <code>useChartContext</code> hook:
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { useChartContext } from "chartly";
+
+function CustomMarker() {
+  const { data, xAccessor, yAccessor, xScale, yScale } = useChartContext();
+  return data.map((d, i) => (
+    <circle
+      key={i}
+      cx={xScale(xAccessor(d))}
+      cy={yScale(yAccessor(d))}
+      r={6}
+      fill="tomato"
+    />
+  ));
+}`} />
+    </section>
+
+    <section id="sizing" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Margins &amp; sizing</h2>
+      <p class="mb-4">
+        Chartly bakes margins directly into the scale ranges, so the plot area
+        automatically excludes room for axes and labels. Override with the
+        <code>margin</code> prop:
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<ChartContainer
+  margin={{ top: 20, right: 24, bottom: 34, left: 52 }}
+  ...
+>`} />
+      <p class="mt-6">
+        The default is <code>{'{ top: 10, right: 10, bottom: 30, left: 40 }'}</code>
+        (exported as <code>DEFAULT_MARGIN</code>). Bump <code>left</code> if you
+        have long y-axis labels, or <code>bottom</code> for angled x-axis text.
+      </p>
+    </section>
+
+    <section id="render-props" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Render-prop pattern</h2>
+      <p class="mb-4">
+        Every customizable output in Chartly &mdash; tooltip contents, per-point
+        labels, pie centroid text &mdash; is a render prop. You pass a function,
+        Chartly calls it with typed positional data, and you return JSX.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Line<Row>
+  label={({ x, y, datum, index }) =>
+    index === data.length - 1
+      ? <text x={x} y={y - 8} fill="#5eead4">\${datum.revenue}</text>
+      : null
+  }
+/>`} />
+      <p class="mt-6">
+        Return <code>null</code> to skip. There is no mini-language to learn
+        &mdash; it is just React.
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Getting started
+      </a>
+      <a href="/guide/cartesian/" class="text-sm text-muted hover:text-text">
+        Cartesian shapes <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

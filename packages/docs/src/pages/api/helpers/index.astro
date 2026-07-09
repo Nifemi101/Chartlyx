@@ -1,0 +1,129 @@
+---
+import { Code } from 'astro:components';
+import ApiLayout from '../../../layouts/ApiLayout.astro';
+
+const title = 'Helpers · API · Chartly';
+---
+
+<ApiLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">API reference</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Helpers</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Runtime utilities and constants exported alongside the components. All
+        of these are tree-shakeable &mdash; import only what you use.
+      </p>
+    </header>
+
+    <section id="stack-sum" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">stackSum</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>stackSum&lt;T&gt;(data: readonly T[], keys: readonly (keyof T)[]): number</code>
+      </p>
+      <p class="mb-4">
+        Computes the maximum <em>accumulated</em> total across all rows for the
+        given key set. Non-finite values are skipped rather than counted as
+        <code>NaN</code>.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { stackSum } from "chartly";
+
+const yMax = stackSum(quarter, ["laptops", "phones", "tablets"]);
+// → the largest per-row sum of those three columns
+
+<ChartContainer
+  data={quarter}
+  yDomain={[0, yMax]}
+  ...
+>
+  <StackedBar keys={["laptops", "phones", "tablets"]} />
+</ChartContainer>`} />
+      <p class="mt-6">
+        Required when using <code>&lt;StackedBar&gt;</code> or
+        <code>&lt;StackedArea&gt;</code> &mdash; the container&rsquo;s auto-computed
+        y-domain covers only the largest single key, so the top of the stack
+        would otherwise clip.
+      </p>
+    </section>
+
+    <section id="pick-color" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">pickColor</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>pickColor(colors: readonly string[], i: number): string</code>
+      </p>
+      <p class="mb-4">
+        Returns <code>colors[i % colors.length]</code>. If the array is empty,
+        returns <code>"currentColor"</code> so charts don&rsquo;t render
+        <code>undefined</code>-colored elements.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { pickColor, DEFAULT_STACK_COLORS } from "chartly";
+
+pickColor(DEFAULT_STACK_COLORS, 0);   // "#3b82f6"
+pickColor(DEFAULT_STACK_COLORS, 6);   // wraps → "#3b82f6"
+pickColor([], 3);                     // "currentColor"`} />
+    </section>
+
+    <section id="default-stack-colors" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">DEFAULT_STACK_COLORS</h2>
+      <p class="mb-4 text-sm text-brand">
+        <code>DEFAULT_STACK_COLORS: readonly string[]</code>
+      </p>
+      <p class="mb-4">
+        The 6-color default palette used by <code>StackedBar</code>,
+        <code>StackedArea</code>, <code>Pie</code>, and <code>Radar</code> when
+        no <code>colors</code> prop is provided.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { DEFAULT_STACK_COLORS } from "chartly";
+
+// DEFAULT_STACK_COLORS = [
+//   "#3b82f6",  // blue
+//   "#10b981",  // emerald
+//   "#f59e0b",  // amber
+//   "#ef4444",  // red
+//   "#8b5cf6",  // violet
+//   "#06b6d4",  // cyan
+// ]`} />
+      <p class="mt-6">
+        The palette is a <code>readonly string[]</code>, so you can pass it
+        directly to any <code>colors</code> prop or use it as a fallback in
+        your own legend.
+      </p>
+    </section>
+
+    <section id="default-margin" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">DEFAULT_MARGIN</h2>
+      <p class="mb-4 text-sm text-brand"><code>DEFAULT_MARGIN: Margin</code></p>
+      <p class="mb-4">
+        The default margin used by <code>&lt;ChartContainer&gt;</code>. Merged
+        with any <code>margin</code> prop you pass.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { DEFAULT_MARGIN } from "chartly";
+
+// DEFAULT_MARGIN = { top: 10, right: 10, bottom: 30, left: 40 }
+
+// Extend rather than replace:
+<ChartContainer margin={{ ...DEFAULT_MARGIN, left: 60 }} ... />`} />
+    </section>
+
+    <section id="version" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">VERSION</h2>
+      <p class="mb-4 text-sm text-brand"><code>VERSION: string</code></p>
+      <p class="mb-4">
+        The Chartly package version at build time. Useful for footers, about
+        dialogs, or debug output.
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { VERSION } from "chartly";
+
+console.log(VERSION); // e.g. "0.0.0"`} />
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/api/hooks/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Hooks
+      </a>
+      <a href="/api/types/" class="text-sm text-muted hover:text-text">
+        Types <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</ApiLayout>

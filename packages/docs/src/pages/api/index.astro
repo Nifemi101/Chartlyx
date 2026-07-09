@@ -1,0 +1,198 @@
+---
+import { Code } from 'astro:components';
+import ApiLayout from '../../layouts/ApiLayout.astro';
+
+const title = 'API · Chartly';
+
+const quickRef: {
+  name: string;
+  kind: 'Component' | 'Hook' | 'Helper' | 'Constant' | 'Type';
+  page: string;
+  hash: string;
+  summary: string;
+}[] = [
+  { name: 'ChartContainer', kind: 'Component', page: '/api/components/', hash: 'chart-container', summary: 'Cartesian root: measures size, builds scales, provides context.' },
+  { name: 'PolarChartContainer', kind: 'Component', page: '/api/components/', hash: 'polar-container', summary: 'Polar root for pie, donut, and radar charts.' },
+  { name: 'Line', kind: 'Component', page: '/api/components/', hash: 'line', summary: 'SVG path connecting data points with a chosen curve.' },
+  { name: 'Area', kind: 'Component', page: '/api/components/', hash: 'area', summary: 'Filled polygon between a line and the plot bottom.' },
+  { name: 'Bar', kind: 'Component', page: '/api/components/', hash: 'bar', summary: 'Rectangular bars on a band x-scale.' },
+  { name: 'Scatter', kind: 'Component', page: '/api/components/', hash: 'scatter', summary: 'One circle per data point.' },
+  { name: 'StackedBar', kind: 'Component', page: '/api/components/', hash: 'stacked-bar', summary: 'Multi-series stacked bar chart with rounded top segment.' },
+  { name: 'StackedArea', kind: 'Component', page: '/api/components/', hash: 'stacked-area', summary: 'Multi-series stacked area chart with curve support.' },
+  { name: 'XAxis', kind: 'Component', page: '/api/components/', hash: 'xaxis', summary: 'Bottom axis line, ticks, labels.' },
+  { name: 'YAxis', kind: 'Component', page: '/api/components/', hash: 'yaxis', summary: 'Left axis line, ticks, labels with rotated title.' },
+  { name: 'CartesianGrid', kind: 'Component', page: '/api/components/', hash: 'cartesian-grid', summary: 'Horizontal and/or vertical grid lines behind the plot.' },
+  { name: 'LinearGradient', kind: 'Component', page: '/api/components/', hash: 'linear-gradient', summary: 'Convenience wrapper for SVG defs gradients.' },
+  { name: 'Tooltip', kind: 'Component', page: '/api/components/', hash: 'tooltip', summary: 'Nearest-point hover tooltip for Cartesian charts.' },
+  { name: 'Legend', kind: 'Component', page: '/api/components/', hash: 'legend', summary: 'Standalone SVG legend with color chips.' },
+  { name: 'Pie', kind: 'Component', page: '/api/components/', hash: 'pie', summary: 'Pie or donut slices from a valueKey.' },
+  { name: 'Radar', kind: 'Component', page: '/api/components/', hash: 'radar', summary: 'Closed polygon connecting values across N axes.' },
+  { name: 'RadarGrid', kind: 'Component', page: '/api/components/', hash: 'radar-grid', summary: 'Concentric background rings for radar charts.' },
+  { name: 'RadarAxes', kind: 'Component', page: '/api/components/', hash: 'radar-axes', summary: 'Spokes and labels for radar chart axes.' },
+  { name: 'PolarTooltip', kind: 'Component', page: '/api/components/', hash: 'polar-tooltip', summary: 'Hover tooltip driven by polar container active state.' },
+  { name: 'useChartContext', kind: 'Hook', page: '/api/hooks/', hash: 'use-chart-context', summary: 'Read scales / accessors / dimensions inside custom Cartesian components.' },
+  { name: 'usePolarChartContext', kind: 'Hook', page: '/api/hooks/', hash: 'use-polar-chart-context', summary: 'Read cx / cy / radius / active slice inside custom polar components.' },
+  { name: 'stackSum', kind: 'Helper', page: '/api/helpers/', hash: 'stack-sum', summary: 'Max accumulated total across rows for a given key set.' },
+  { name: 'pickColor', kind: 'Helper', page: '/api/helpers/', hash: 'pick-color', summary: 'Cycles through a color array by index; wraps safely.' },
+  { name: 'DEFAULT_STACK_COLORS', kind: 'Constant', page: '/api/helpers/', hash: 'default-stack-colors', summary: '6-color default palette for stacks, pies, radars.' },
+  { name: 'DEFAULT_MARGIN', kind: 'Constant', page: '/api/helpers/', hash: 'default-margin', summary: 'Default Cartesian chart margin.' },
+  { name: 'VERSION', kind: 'Constant', page: '/api/helpers/', hash: 'version', summary: 'Package version string.' },
+  { name: 'KeysOfType', kind: 'Type', page: '/api/types/', hash: 'keys-of-type', summary: 'Utility type: keys of T whose values match V.' },
+];
+
+const kindClass: Record<string, string> = {
+  Component: 'text-brand-strong',
+  Hook: 'text-brand',
+  Helper: 'text-[#a78bfa]',
+  Constant: 'text-[#f472b6]',
+  Type: 'text-[#fb923c]',
+};
+---
+
+<ApiLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">API reference</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">API overview</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Everything Chartly exports, verified against the source. Components,
+        hooks, helpers, constants, and types &mdash; each with prop signatures
+        and defaults straight from the code.
+      </p>
+    </header>
+
+    <section id="imports" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Imports &amp; version</h2>
+      <p class="mb-4">
+        Chartly ships as a single package with a flat export surface &mdash;
+        everything lives at the top level, no sub-paths required.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import {
+  // Cartesian
+  ChartContainer,
+  Line,
+  Area,
+  Bar,
+  Scatter,
+  StackedBar,
+  StackedArea,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LinearGradient,
+  Tooltip,
+  Legend,
+
+  // Polar
+  PolarChartContainer,
+  Pie,
+  Radar,
+  RadarGrid,
+  RadarAxes,
+  PolarTooltip,
+
+  // Hooks
+  useChartContext,
+  usePolarChartContext,
+
+  // Helpers
+  stackSum,
+  pickColor,
+  DEFAULT_STACK_COLORS,
+  DEFAULT_MARGIN,
+  VERSION,
+} from "chartly";
+
+import type {
+  ChartContainerProps,
+  ChartContextValue,
+  PolarChartContainerProps,
+  PolarChartContextValue,
+  LineProps,
+  AreaProps,
+  BarProps,
+  ScatterProps,
+  StackedBarProps,
+  StackedAreaProps,
+  PieProps,
+  RadarProps,
+  RadarGridProps,
+  RadarAxesProps,
+  AxisProps,
+  CartesianGridProps,
+  TooltipProps,
+  TooltipState,
+  TooltipRender,
+  LegendProps,
+  LegendItem,
+  LinearGradientProps,
+  PieLabelRender,
+  PieLabelRenderProps,
+  PolarTooltipProps,
+  PolarTooltipRender,
+  PolarTooltipState,
+  ShapeLabelRender,
+  ShapeLabelRenderProps,
+  TickValue,
+  TickFormatter,
+  CurveType,
+  ScaleType,
+  ScaleInput,
+  Margin,
+  KeysOfType,
+} from "chartly";`} />
+      <p class="mt-6">
+        The current package version is exposed as a runtime constant if you
+        need to display it in your app:
+      </p>
+      <Code lang="ts" theme="github-dark" code={`import { VERSION } from "chartly";
+console.log(VERSION); // "0.0.0"`} />
+    </section>
+
+    <section id="reference" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Quick reference</h2>
+      <p class="mb-4">
+        Every symbol Chartly exports at a glance. Click any name to jump to
+        its detailed reference.
+      </p>
+      <div class="my-6 overflow-x-auto rounded-lg border border-border">
+        <table class="w-full text-sm">
+          <thead class="bg-panel-soft">
+            <tr>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Name</th>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Kind</th>
+              <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {quickRef.map((row, i) => (
+              <tr class={i < quickRef.length - 1 ? 'border-b border-border' : ''}>
+                <td class="px-4 py-2 align-top">
+                  <a
+                    href={row.page + '#' + row.hash}
+                    class="whitespace-nowrap text-[0.8rem] text-text hover:text-brand-strong"
+                  >
+                    <code class="bg-transparent p-0">{row.name}</code>
+                  </a>
+                </td>
+                <td class={'px-4 py-2 align-top text-[0.75rem] font-medium ' + (kindClass[row.kind] ?? 'text-muted')}>
+                  {row.kind}
+                </td>
+                <td class="px-4 py-2 align-top text-muted">{row.summary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Guide
+      </a>
+      <a href="/api/components/" class="text-sm text-muted hover:text-text">
+        Components <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</ApiLayout>

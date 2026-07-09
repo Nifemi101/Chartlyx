@@ -1,0 +1,104 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Axes & grid · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Axes &amp; grid</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Axes &amp; grid</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Independent components that read the same scales as your shapes.
+        Add them as siblings of your <code>&lt;Line&gt;</code> or
+        <code>&lt;Bar&gt;</code> &mdash; no wiring required.
+      </p>
+    </header>
+
+    <section id="xaxis" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">XAxis</h2>
+      <p class="mb-4">
+        Horizontal axis at the bottom of the plot area. Renders the axis line,
+        tick marks, tick labels, and an optional axis title. Tick values come
+        from <code>xScale.ticks()</code> for linear/time scales, or
+        <code>xScale.domain()</code> for band scales.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<XAxis
+  stroke="#64748b"
+  textFill="#cbd5e1"
+  label="Month"
+  labelOffset={30}
+  tickCount={6}
+/>`} />
+      <p class="mt-6">
+        The <code>textFill</code> prop is separate from <code>stroke</code>, so
+        you can tune tick text color independently of the axis line &mdash; useful
+        for dark themes where you often want an invisible axis line and softly
+        colored text.
+      </p>
+    </section>
+
+    <section id="yaxis" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">YAxis</h2>
+      <p class="mb-4">
+        Vertical axis on the left. Same props as XAxis; the axis title is
+        rotated <code>-90&deg;</code> so it reads bottom-to-top, the standard
+        convention.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<YAxis stroke="#64748b" textFill="#cbd5e1" label="Revenue" />`} />
+    </section>
+
+    <section id="tick-formatters" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Tick formatters</h2>
+      <p class="mb-4">
+        Both axes accept a <code>tickFormatter</code> function that transforms
+        each tick value into its display text. The formatter is typed to the
+        scale&rsquo;s output &mdash; you get numbers for linear scales, dates for
+        time scales, strings for band scales.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<YAxis tickFormatter={(v) => \`\$\${v.toLocaleString()}\`} />
+
+<XAxis tickFormatter={(d: Date) =>
+  new Intl.DateTimeFormat("en", { month: "short" }).format(d)
+} />
+
+<XAxis tickFormatter={(v, i) => (i % 2 === 0 ? v : "")} />`} />
+      <p class="mt-6">
+        The formatter also receives the tick&rsquo;s <code>index</code>, so you
+        can skip every other tick, highlight endpoints, or otherwise vary the
+        output positionally.
+      </p>
+    </section>
+
+    <section id="grid" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">CartesianGrid</h2>
+      <p class="mb-4">
+        Horizontal and/or vertical guide lines behind the plot area. Dashed by
+        default; supply <code>dashArray="none"</code> for solid.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<CartesianGrid
+  stroke="#334155"
+  strokeOpacity={0.75}
+  dashArray="4 6"
+  horizontal={true}
+  vertical={false}
+/>`} />
+      <p class="mt-6">
+        Place <code>&lt;CartesianGrid&gt;</code> before your shapes so grid lines
+        paint underneath. Toggle <code>horizontal</code> / <code>vertical</code>
+        for grid-only-in-one-direction effects.
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/polar/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Polar shapes
+      </a>
+      <a href="/guide/interaction/" class="text-sm text-muted hover:text-text">
+        Interaction <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

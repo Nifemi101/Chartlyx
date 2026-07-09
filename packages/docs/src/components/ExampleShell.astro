@@ -1,0 +1,33 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  title: string;
+  description?: string;
+  sourceCode: string;
+}
+
+const { title, description, sourceCode } = Astro.props;
+---
+
+<div class="prose-guide">
+  <header class="mb-8">
+    <h1 class="mb-2 text-3xl font-semibold tracking-tight text-text">{title}</h1>
+    {description && <p class="max-w-[720px] leading-relaxed text-muted">{description}</p>}
+  </header>
+
+  <section class="mb-10 overflow-hidden rounded-xl border border-border bg-panel/40">
+    <div class="h-[420px] w-full p-6">
+      <slot name="chart" />
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <div class="mb-3 flex items-center justify-between">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-text">Source</h2>
+    </div>
+    <Code code={sourceCode} lang="tsx" theme="github-dark" />
+  </section>
+
+  <slot />
+</div>

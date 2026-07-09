@@ -1,0 +1,49 @@
+---
+interface Prop {
+  name: string;
+  type: string;
+  default?: string;
+  required?: boolean;
+  description: string;
+}
+
+interface Props {
+  rows: Prop[];
+}
+
+const { rows } = Astro.props;
+---
+
+<div class="my-6 overflow-x-auto rounded-lg border border-border">
+  <table class="w-full text-sm">
+    <thead class="bg-panel-soft">
+      <tr>
+        <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Prop</th>
+        <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Type</th>
+        <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Default</th>
+        <th class="border-b border-border px-4 py-2 text-left font-semibold text-text">Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map((row, i) => (
+        <tr class={i < rows.length - 1 ? 'border-b border-border' : ''}>
+          <td class="px-4 py-3 align-top">
+            <code class="whitespace-nowrap text-[0.8rem] text-text">
+              {row.name}
+              {row.required && <span class="ml-1 text-brand-strong" title="required">*</span>}
+            </code>
+          </td>
+          <td class="px-4 py-3 align-top">
+            <code class="whitespace-nowrap text-[0.8rem] text-brand">{row.type}</code>
+          </td>
+          <td class="px-4 py-3 align-top">
+            {row.default
+              ? <code class="whitespace-nowrap text-[0.8rem] text-muted">{row.default}</code>
+              : <span class="text-[0.8rem] text-muted">&mdash;</span>}
+          </td>
+          <td class="px-4 py-3 align-top text-muted" set:html={row.description} />
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

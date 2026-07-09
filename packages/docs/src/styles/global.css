@@ -1,12 +1,48 @@
 @import "tailwindcss";
 
+/* ─────────── Custom scrollbar ─────────── */
+
+html {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  scrollbar-width: thin;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+  transition: background 0.15s ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.32);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
 @theme {
-  --color-bg: #111318;
-  --color-panel: #181b22;
-  --color-panel-soft: #20242d;
-  --color-border: #2b303a;
+  --color-bg: #000000;
+  --color-panel: #0a0a0a;
+  --color-panel-soft: #111111;
+  --color-border: #1f1f22;
   --color-text: #f8fafc;
-  --color-muted: #a8b0bd;
+  --color-muted: #a1a1aa;
   --color-brand: #38bdf8;
   --color-brand-strong: #5eead4;
 }
@@ -33,7 +69,7 @@ pre {
   overflow: auto;
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #0b0d12;
+  background: #050505;
   padding: 1rem;
 }
 
@@ -47,4 +83,37 @@ pre {
   .home-chart {
     height: 260px;
   }
+}
+
+/* ─────────── Guide prose ─────────── */
+
+.prose-guide h2 {
+  scroll-margin-top: 6rem;
+}
+.prose-guide p {
+  color: var(--color-muted);
+  line-height: 1.7;
+  margin: 0 0 0.75rem;
+}
+.prose-guide :not(pre) > code {
+  font-size: 0.85em;
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.prose-guide .astro-code {
+  margin: 1rem 0 !important;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  background: #050505 !important;
+  overflow-x: auto;
+}
+.prose-guide .astro-code code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
 }

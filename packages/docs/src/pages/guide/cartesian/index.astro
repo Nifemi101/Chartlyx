@@ -1,0 +1,153 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Cartesian shapes · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Cartesian shapes</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Cartesian shapes</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Six shapes that plot on an x/y coordinate system, plus a composition
+        story. All read the same context from <code>&lt;ChartContainer&gt;</code>
+        and can be freely mixed as siblings.
+      </p>
+    </header>
+
+    <section id="line" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Line</h2>
+      <p class="mb-4">
+        Renders a single SVG <code>&lt;path&gt;</code> connecting your data points.
+        Configure the interpolation with <code>curve</code>
+        (<code>"linear"</code>, <code>"monotone"</code>, <code>"step"</code>) and
+        style with <code>stroke</code>, <code>strokeWidth</code>,
+        <code>strokeDasharray</code>.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Line stroke="#5eead4" strokeWidth={2} curve="monotone" />`} />
+      <p class="mt-6">
+        Undefined or <code>NaN</code> values in the data are filtered out via
+        d3&rsquo;s <code>.defined()</code>, so gaps in your data produce gaps in
+        the line &mdash; not broken paths.
+      </p>
+    </section>
+
+    <section id="area" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Area</h2>
+      <p class="mb-4">
+        A filled polygon between the line and the plot bottom. Same curve options
+        as Line. Pair with <a href="/guide/styling/#gradient" class="text-text underline decoration-border underline-offset-4 hover:decoration-brand-strong">LinearGradient</a>
+        for a fading fill.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<LinearGradient id="fade" from="#5eead4" to="#5eead4"
+  fromOpacity={0.35} toOpacity={0} />
+<Area fill="url(#fade)" curve="monotone" />
+<Line stroke="#5eead4" strokeWidth={2} curve="monotone" />`} />
+      <p class="mt-6">
+        Put <code>&lt;Area&gt;</code> before <code>&lt;Line&gt;</code> in JSX so
+        the line paints on top of the fill.
+      </p>
+    </section>
+
+    <section id="bar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Bar</h2>
+      <p class="mb-4">
+        A vertical rectangle per data row. Requires a <code>band</code> x-scale.
+        Bars are all the same width (from <code>xScale.bandwidth()</code>) and
+        start from a configurable <code>baseline</code> (default 0).
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Bar fill="#38bdf8" fillOpacity={0.85} radius={4} />`} />
+      <p class="mt-6">
+        When your y-domain doesn&rsquo;t include 0 (say, revenue values
+        <code>120&ndash;270</code>), Chartly clamps the baseline to the plot
+        floor so bars visually stand on the axis. Override <code>baseline</code>
+        to pin them somewhere else.
+      </p>
+    </section>
+
+    <section id="scatter" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Scatter</h2>
+      <p class="mb-4">
+        One <code>&lt;circle&gt;</code> per data point at
+        <code>(xScale(x), yScale(y))</code>. Ideal for correlation studies or
+        overlaying markers on top of a line.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Scatter fill="#5eead4" radius={5} fillOpacity={0.8} />`} />
+    </section>
+
+    <section id="stacked-bar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Stacked Bar</h2>
+      <p class="mb-4">
+        Wraps <code>d3-shape.stack()</code> to draw multiple series as accumulated
+        segments per band. Pass the keys to stack and (optionally) a color
+        palette. Only the top segment gets the corner radius &mdash; rounding
+        every segment would produce visible curved gaps between color bands.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<ChartContainer
+  data={quarter}
+  xKey="month" xScaleType="band"
+  yKey="laptops" yScaleType="linear"
+  yDomain={[0, stackSum(quarter, ["laptops", "phones", "tablets"])]}
+>
+  <StackedBar
+    keys={["laptops", "phones", "tablets"]}
+    colors={DEFAULT_STACK_COLORS}
+    radius={4}
+  />
+</ChartContainer>`} />
+      <p class="mt-6">
+        Set <code>yDomain</code> using <a href="/guide/helpers/#stack-sum" class="text-text underline decoration-border underline-offset-4 hover:decoration-brand-strong">stackSum</a>
+        &mdash; the auto-computed domain covers only the largest single key, not
+        the sum, so the top of the stack would otherwise clip.
+      </p>
+    </section>
+
+    <section id="stacked-area" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Stacked Area</h2>
+      <p class="mb-4">
+        The area equivalent of Stacked Bar. Same <code>keys</code> and
+        <code>yDomain</code> mechanics; supports <code>curve</code> for smooth
+        interpolation between accumulated points.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<StackedArea
+  keys={["laptops", "phones", "tablets"]}
+  colors={DEFAULT_STACK_COLORS}
+  curve="monotone"
+/>`} />
+    </section>
+
+    <section id="composed" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Composed charts</h2>
+      <p class="mb-4">
+        Multiple shapes in one chart is just multiple children. Every shape
+        accepts optional per-shape <code>y</code> / <code>yKey</code> props
+        that override the container default &mdash; letting one shape plot
+        <code>revenue</code> and another plot <code>runningAvg</code>.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<ChartContainer
+  data={sales}
+  xKey="month" xScaleType="band"
+  yKey="revenue" yScaleType="linear"
+>
+  <Bar fill="#38bdf8" fillOpacity={0.5} />
+  <Line y={(d) => d.runningAvg} stroke="#5eead4" curve="monotone" />
+</ChartContainer>`} />
+      <p class="mt-6">
+        Both series share the same x-scale and y-scale &mdash; the running
+        average must fit within the revenue domain (or you must set an
+        explicit <code>yDomain</code>).
+      </p>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/core-concepts/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Core concepts
+      </a>
+      <a href="/guide/polar/" class="text-sm text-muted hover:text-text">
+        Polar shapes <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

@@ -1,0 +1,133 @@
+---
+import { Code } from 'astro:components';
+import GuideLayout from '../../../layouts/GuideLayout.astro';
+
+const title = 'Polar shapes · Chartly';
+---
+
+<GuideLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">Polar shapes</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Polar shapes</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        Everything that plots around a center point instead of on an x/y grid.
+        Pies, donuts, and radars all live inside a separate
+        <code>&lt;PolarChartContainer&gt;</code>.
+      </p>
+    </header>
+
+    <section id="polar-container" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">PolarChartContainer</h2>
+      <p class="mb-4">
+        The polar equivalent of <code>&lt;ChartContainer&gt;</code>. Measures its
+        own size via <code>ResizeObserver</code>, computes a center
+        (<code>cx</code>, <code>cy</code>) and outer <code>radius</code>, and
+        exposes them to children via a separate polar context.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<PolarChartContainer
+  data={products}
+  valueKey="revenue"    // required for Pie, omit for Radar
+  innerRadius={70}      // 0 = pie, >0 = donut
+  padding={16}          // gap from container edge, default 20
+>
+  <Pie colors={COLORS} />
+</PolarChartContainer>`} />
+      <p class="mt-6">
+        The <code>valueKey</code> prop is typed as
+        <code>KeysOfType&lt;T, number&gt;</code>, so string-valued keys are
+        rejected at compile time. Read via <code>usePolarChartContext()</code>
+        in custom components.
+      </p>
+    </section>
+
+    <section id="pie" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Pie &amp; Donut</h2>
+      <p class="mb-4">
+        A pie chart with <code>innerRadius=0</code>; a donut with any positive
+        value. The <code>label</code> render prop receives the slice
+        <code>centroid</code> (a 2-element pixel offset from the pie center)
+        so you can position text at each wedge&rsquo;s visual middle.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<Pie<Row>
+  colors={["#5eead4", "#38bdf8", "#a78bfa", "#f472b6"]}
+  label={({ centroid, datum }) => (
+    <text
+      x={centroid[0]} y={centroid[1]}
+      textAnchor="middle" dy="0.32em"
+      fontSize={12} fill="#000"
+    >
+      {datum.category}
+    </text>
+  )}
+/>`} />
+      <p class="mt-6">
+        Slices are drawn in data order (we call
+        <code>d3.pie().sort(null)</code> under the hood), so the visual order
+        matches whatever order you pass to <code>data</code>.
+      </p>
+    </section>
+
+    <section id="radar" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">Radar</h2>
+      <p class="mb-4">
+        A closed polygon connecting one data row&rsquo;s values across multiple
+        numeric axes. Pass <code>axes</code> (the keys to plot) and a
+        <code>maxValue</code> for consistent scaling. For multi-series overlays,
+        add multiple <code>&lt;Radar&gt;</code> children with different
+        <code>rowIndex</code> props.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<PolarChartContainer data={players} padding={24}>
+  <RadarGrid axesCount={5} rings={4} />
+  <RadarAxes axes={["speed", "power", "defense", "magic", "agility"]} />
+  <Radar
+    axes={["speed", "power", "defense", "magic", "agility"]}
+    rowIndex={0}
+    fill="#5eead4" fillOpacity={0.25}
+    stroke="#5eead4"
+  />
+  <Radar
+    axes={["speed", "power", "defense", "magic", "agility"]}
+    rowIndex={1}
+    fill="#38bdf8" fillOpacity={0.25}
+    stroke="#38bdf8"
+  />
+</PolarChartContainer>`} />
+      <p class="mt-6">
+        Omit <code>rowIndex</code> to plot the first row by default. Each
+        <code>&lt;Radar&gt;</code> owns its own hover state, so a
+        <code>&lt;PolarTooltip&gt;</code> below them can react to whichever
+        polygon the user is over.
+      </p>
+    </section>
+
+    <section id="radar-grid" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">RadarGrid</h2>
+      <p class="mb-4">
+        Background concentric rings for radar charts. Configurable ring count
+        and shape (<code>polygon</code> or <code>circle</code>). Renders behind
+        everything else &mdash; place it as the first child of the container.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<RadarGrid axesCount={5} rings={4} shape="polygon" />`} />
+    </section>
+
+    <section id="radar-axes" class="mb-16 scroll-mt-24">
+      <h2 class="mb-4 text-2xl font-semibold text-text">RadarAxes</h2>
+      <p class="mb-4">
+        Spokes from the center to the outer radius, plus labels beyond each
+        endpoint. Text anchor flips automatically based on each label&rsquo;s
+        angular position so nothing crowds the center.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`<RadarAxes axes={["speed", "power", "defense", "magic", "agility"]} />`} />
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/guide/cartesian/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Cartesian shapes
+      </a>
+      <a href="/guide/axes/" class="text-sm text-muted hover:text-text">
+        Axes &amp; grid <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</GuideLayout>

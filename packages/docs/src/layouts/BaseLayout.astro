@@ -3,12 +3,41 @@ import '../styles/global.css';
 const { title } = Astro.props;
 
 const navItems = [
-  { href: '/', label: 'Guide' },
-  { href: '/examples/line/', label: 'Examples' },
+  { href: '/guide/', label: 'Guide' },
+  { href: '/examples/', label: 'Examples' },
   { href: '/api/', label: 'API' },
   { href: 'https://www.npmjs.com/package/chartly', label: 'npm' },
   { href: 'https://github.com/', label: 'GitHub' },
 ];
+
+const footerColumns = [
+  {
+    heading: 'Docs',
+    links: [
+      { href: '/', label: 'Getting started' },
+      { href: '/examples/line/', label: 'Examples' },
+      { href: '/api/', label: 'API reference' },
+    ],
+  },
+  {
+    heading: 'Community',
+    links: [
+      { href: 'https://github.com/', label: 'GitHub' },
+      { href: 'https://www.npmjs.com/package/chartly', label: 'npm' },
+      { href: 'https://github.com/', label: 'Issues' },
+    ],
+  },
+  {
+    heading: 'Project',
+    links: [
+      { href: '/', label: 'Roadmap' },
+      { href: '/', label: 'Changelog' },
+      { href: '/', label: 'License' },
+    ],
+  },
+];
+
+const currentYear = new Date().getFullYear();
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -38,5 +67,49 @@ const navItems = [
     <main class="mx-auto w-full max-w-[1120px] px-6 pt-12 pb-20 sm:pt-[4.5rem]">
       <slot />
     </main>
+    <footer class="border-t border-border bg-panel/40">
+      <div class="mx-auto w-full max-w-[1120px] px-6 py-12">
+        <div class="grid grid-cols-1 gap-10 sm:grid-cols-[1.5fr_1fr_1fr_1fr]">
+          <div>
+            <a class="inline-flex items-center whitespace-nowrap text-base font-bold text-brand" href="/" aria-label="Chartly home">
+              <code class="bg-transparent p-0 text-inherit">&lt;Chartly /&gt;</code>
+            </a>
+            <p class="mt-3 max-w-[280px] text-sm leading-relaxed text-muted">
+              A composable charting library for React &mdash; typed, D3-powered, MIT licensed.
+            </p>
+          </div>
+          {footerColumns.map((col) => (
+            <div>
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-text">
+                {col.heading}
+              </h3>
+              <ul class="flex flex-col gap-2">
+                {col.links.map((link) => (
+                  <li>
+                    <a
+                      class="text-sm text-muted transition-colors hover:text-text"
+                      href={link.href}
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div class="mt-10 flex flex-col items-start gap-3 border-t border-border pt-6 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            &copy; {currentYear} Chartly &middot; MIT License &middot; v0.0.0
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span>Built with</span>
+            <a class="font-medium text-text hover:text-brand-strong" href="https://react.dev/">React</a>
+            <span>+</span>
+            <a class="font-medium text-text hover:text-brand-strong" href="https://d3js.org/">D3</a>
+          </div>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>

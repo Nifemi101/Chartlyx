@@ -1,0 +1,126 @@
+---
+import { Code } from 'astro:components';
+import ApiLayout from '../../../layouts/ApiLayout.astro';
+
+const title = 'Hooks · API · Chartly';
+---
+
+<ApiLayout title={title}>
+  <div class="prose-guide">
+    <header class="mb-12 border-b border-border pb-8">
+      <p class="mb-2 text-sm font-semibold uppercase tracking-wider text-brand-strong">API reference</p>
+      <h1 class="mb-4 text-4xl font-semibold tracking-tight text-text">Hooks</h1>
+      <p class="max-w-[720px] text-lg leading-relaxed text-muted">
+        React hooks that read from Chartly&rsquo;s internal contexts. Use these
+        to build custom components that participate in the chart layout &mdash;
+        crosshairs, annotations, custom hover UI, markers.
+      </p>
+    </header>
+
+    <section id="use-chart-context" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">useChartContext</h2>
+      <p class="mb-4 text-sm text-brand"><code>useChartContext&lt;T&gt;(): ChartContextValue&lt;T&gt;</code></p>
+      <p class="mb-4">
+        Read the Cartesian chart context. Must be called inside a
+        <code>&lt;ChartContainer&gt;</code> subtree; throws otherwise. Generic
+        over your row type so <code>data</code> is typed as
+        <code>readonly T[]</code>.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { useChartContext } from "chartly";
+
+interface Row { month: string; revenue: number }
+
+function MyMarker() {
+  const {
+    data,           // readonly Row[]
+    xAccessor,      // (d: Row) => number | Date | string
+    yAccessor,      // (d: Row) => number | Date | string
+    xScale,
+    yScale,
+    width, height,  // full container dimensions
+    innerWidth,     // width minus horizontal margins
+    innerHeight,    // height minus vertical margins
+    margin,         // { top, right, bottom, left }
+  } = useChartContext<Row>();
+
+  return data.map((d, i) => (
+    <circle
+      key={i}
+      cx={xScale(xAccessor(d))}
+      cy={yScale(yAccessor(d))}
+      r={4}
+      fill="tomato"
+    />
+  ));
+}`} />
+      <h3 class="mt-6 mb-3 text-lg font-semibold text-text">Returned value</h3>
+      <ul class="ml-6 list-disc space-y-1 text-muted">
+        <li><code>data: readonly T[]</code> &mdash; the rows passed to the container.</li>
+        <li><code>xScale, yScale</code> &mdash; D3 scale functions with margins baked in.</li>
+        <li><code>xAccessor, yAccessor</code> &mdash; resolved from <code>xKey</code>/<code>x</code> and <code>yKey</code>/<code>y</code>.</li>
+        <li><code>width, height</code> &mdash; measured container size in pixels.</li>
+        <li><code>innerWidth, innerHeight</code> &mdash; the plottable area (dimensions minus margins).</li>
+        <li><code>margin</code> &mdash; the final margin object (defaults merged with your override).</li>
+      </ul>
+      <h3 class="mt-6 mb-3 text-lg font-semibold text-text">Errors</h3>
+      <p>
+        Calling outside a <code>&lt;ChartContainer&gt;</code> throws
+        <code>"useChartContext must be used inside a &lt;ChartContainer&gt;"</code>.
+      </p>
+    </section>
+
+    <section id="use-polar-chart-context" class="mb-16 scroll-mt-24">
+      <h2 class="mb-2 text-2xl font-semibold text-text">usePolarChartContext</h2>
+      <p class="mb-4 text-sm text-brand"><code>usePolarChartContext&lt;T&gt;(): PolarChartContextValue&lt;T&gt;</code></p>
+      <p class="mb-4">
+        Read the polar chart context. Must be called inside a
+        <code>&lt;PolarChartContainer&gt;</code> subtree; throws otherwise.
+        Generic over your row type; both <code>data</code> and
+        <code>valueAccessor</code> are typed to <code>T</code>.
+      </p>
+      <Code lang="tsx" theme="github-dark" code={`import { usePolarChartContext } from "chartly";
+
+interface Row { category: string; revenue: number }
+
+function CenterLabel() {
+  const {
+    data,               // readonly Row[]
+    valueAccessor,      // (d: Row) => number
+    cx, cy,             // center of the chart
+    radius,             // outer radius in pixels
+    innerRadius,        // inner radius (0 for pie, >0 for donut)
+    padding,            // gap from container edge
+    width, height,      // full container dimensions
+    activeIndex,        // number | null — which slice is hovered
+    setActiveIndex,     // (i: number | null) => void
+  } = usePolarChartContext<Row>();
+
+  const total = data.reduce((sum, d) => sum + valueAccessor(d), 0);
+
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dy="0.32em" fill="#f8fafc">
+      \${total.toLocaleString()}
+    </text>
+  );
+}`} />
+      <h3 class="mt-6 mb-3 text-lg font-semibold text-text">Returned value</h3>
+      <ul class="ml-6 list-disc space-y-1 text-muted">
+        <li><code>data: readonly T[]</code>, <code>valueAccessor: (d: T) =&gt; number</code> &mdash; both narrowed to <code>T</code>.</li>
+        <li><code>cx, cy</code> &mdash; center coordinates.</li>
+        <li><code>radius, innerRadius</code> &mdash; outer and inner radius.</li>
+        <li><code>padding, width, height</code> &mdash; container geometry.</li>
+        <li><code>activeIndex</code> &mdash; index of the currently-hovered slice/polygon, or <code>null</code>.</li>
+        <li><code>setActiveIndex</code> &mdash; setter for custom hover targets (e.g. a legend that highlights on hover).</li>
+      </ul>
+    </section>
+
+    <div class="mt-16 flex items-center justify-between border-t border-border pt-8">
+      <a href="/api/components/" class="text-sm text-muted hover:text-text">
+        <span aria-hidden="true">&larr;</span> Components
+      </a>
+      <a href="/api/helpers/" class="text-sm text-muted hover:text-text">
+        Helpers <span aria-hidden="true">&rarr;</span>
+      </a>
+    </div>
+  </div>
+</ApiLayout>

@@ -1,0 +1,166 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  title: string;
+}
+const { title } = Astro.props;
+const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+interface NavLink {
+  label: string;
+  href: string;
+}
+interface NavSection {
+  heading: string;
+  basePath: string;
+  links: NavLink[];
+}
+
+const sidebar: NavSection[] = [
+  {
+    heading: 'Getting started',
+    basePath: '/guide',
+    links: [
+      { label: 'Introduction', href: '/guide/' },
+      { label: 'Installation', href: '/guide/#installation' },
+      { label: 'Your first chart', href: '/guide/#first-chart' },
+      { label: 'TypeScript setup', href: '/guide/#typescript' },
+    ],
+  },
+  {
+    heading: 'Core concepts',
+    basePath: '/guide/core-concepts',
+    links: [
+      { label: 'ChartContainer', href: '/guide/core-concepts/#chart-container' },
+      { label: 'Scales', href: '/guide/core-concepts/#scales' },
+      { label: 'The context', href: '/guide/core-concepts/#context' },
+      { label: 'Margins & sizing', href: '/guide/core-concepts/#sizing' },
+      { label: 'Render-prop pattern', href: '/guide/core-concepts/#render-props' },
+    ],
+  },
+  {
+    heading: 'Cartesian shapes',
+    basePath: '/guide/cartesian',
+    links: [
+      { label: 'Line', href: '/guide/cartesian/#line' },
+      { label: 'Area', href: '/guide/cartesian/#area' },
+      { label: 'Bar', href: '/guide/cartesian/#bar' },
+      { label: 'Scatter', href: '/guide/cartesian/#scatter' },
+      { label: 'Stacked Bar', href: '/guide/cartesian/#stacked-bar' },
+      { label: 'Stacked Area', href: '/guide/cartesian/#stacked-area' },
+      { label: 'Composed charts', href: '/guide/cartesian/#composed' },
+    ],
+  },
+  {
+    heading: 'Polar shapes',
+    basePath: '/guide/polar',
+    links: [
+      { label: 'PolarChartContainer', href: '/guide/polar/#polar-container' },
+      { label: 'Pie & Donut', href: '/guide/polar/#pie' },
+      { label: 'Radar', href: '/guide/polar/#radar' },
+      { label: 'RadarGrid', href: '/guide/polar/#radar-grid' },
+      { label: 'RadarAxes', href: '/guide/polar/#radar-axes' },
+    ],
+  },
+  {
+    heading: 'Axes & grid',
+    basePath: '/guide/axes',
+    links: [
+      { label: 'XAxis', href: '/guide/axes/#xaxis' },
+      { label: 'YAxis', href: '/guide/axes/#yaxis' },
+      { label: 'Tick formatters', href: '/guide/axes/#tick-formatters' },
+      { label: 'CartesianGrid', href: '/guide/axes/#grid' },
+    ],
+  },
+  {
+    heading: 'Interaction',
+    basePath: '/guide/interaction',
+    links: [
+      { label: 'Tooltip', href: '/guide/interaction/#tooltip' },
+      { label: 'PolarTooltip', href: '/guide/interaction/#polar-tooltip' },
+      { label: 'Nearest-point lookup', href: '/guide/interaction/#nearest-point' },
+      { label: 'Custom hover UI', href: '/guide/interaction/#custom-hover' },
+    ],
+  },
+  {
+    heading: 'Styling',
+    basePath: '/guide/styling',
+    links: [
+      { label: 'LinearGradient', href: '/guide/styling/#gradient' },
+      { label: 'Colors & palettes', href: '/guide/styling/#palettes' },
+      { label: 'Responsive charts', href: '/guide/styling/#responsive' },
+      { label: 'Dark theme', href: '/guide/styling/#dark-theme' },
+    ],
+  },
+  {
+    heading: 'Helpers',
+    basePath: '/guide/helpers',
+    links: [
+      { label: 'stackSum', href: '/guide/helpers/#stack-sum' },
+      { label: 'pickColor', href: '/guide/helpers/#pick-color' },
+      { label: 'DEFAULT_STACK_COLORS', href: '/guide/helpers/#default-colors' },
+      { label: 'KeysOfType', href: '/guide/helpers/#keys-of-type' },
+    ],
+  },
+];
+---
+
+<BaseLayout title={title}>
+  <div class="mx-[-1.5rem] flex flex-col gap-8 lg:flex-row lg:gap-10">
+    <aside class="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto">
+      <nav class="guide-nav px-6 pb-8 lg:pl-6 lg:pr-2" aria-label="Guide navigation">
+        {sidebar.map((section) => {
+          const sectionActive = currentPath === section.basePath;
+          return (
+            <div class="mb-6">
+              <a
+                href={section.basePath + '/'}
+                class={
+                  sectionActive
+                    ? 'mb-2 block text-[0.7rem] font-semibold uppercase tracking-wider text-brand-strong'
+                    : 'mb-2 block text-[0.7rem] font-semibold uppercase tracking-wider text-text transition-colors hover:text-brand-strong'
+                }
+              >
+                {section.heading}
+              </a>
+              <ul class="flex flex-col gap-0.5 border-l border-border">
+                {section.links.map((link) => (
+                  <li>
+                    <a
+                      class={
+                        sectionActive
+                          ? 'block -ml-px border-l-2 border-transparent pl-3 py-1 text-sm text-muted transition-colors hover:border-brand-strong hover:text-text'
+                          : 'block -ml-px border-l-2 border-transparent pl-3 py-1 text-sm text-muted transition-colors hover:border-zinc-600 hover:text-text'
+                      }
+                      href={link.href}
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </nav>
+    </aside>
+
+    <article class="min-w-0 flex-1 px-6 pb-16">
+      <slot />
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .guide-nav::-webkit-scrollbar {
+    width: 6px;
+  }
+  .guide-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  .guide-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+</style>
