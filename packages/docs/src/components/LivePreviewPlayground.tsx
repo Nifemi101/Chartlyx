@@ -138,8 +138,8 @@ export default function LivePreviewPlayground(): React.JSX.Element {
   const source = useMemo(() => buildSource(color, curve, showArea), [color, curve, showArea]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-      <div className="flex flex-col gap-6 rounded-lg border border-border bg-panel p-5">
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="flex flex-col gap-5 rounded-lg border border-border bg-panel p-4 sm:gap-6 sm:p-5">
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Stroke color</p>
           <div className="flex gap-2">
@@ -193,15 +193,15 @@ export default function LivePreviewPlayground(): React.JSX.Element {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="h-[300px] w-full rounded-lg border border-border bg-panel p-4">
+      <div className="flex min-w-0 flex-col gap-4">
+        <div className="h-[240px] w-full rounded-lg border border-border bg-panel p-2 sm:h-[300px] sm:p-4">
           <ChartContainer
             data={data}
             xKey="label"
             xScaleType="band"
             yKey="value"
             yScaleType="linear"
-            margin={{ top: 16, right: 20, bottom: 30, left: 46 }}
+            margin={{ top: 12, right: 12, bottom: 28, left: 40 }}
           >
             {showArea && (
               <LinearGradient
@@ -232,7 +232,7 @@ export default function LivePreviewPlayground(): React.JSX.Element {
             </span>
             <span>LivePreview.tsx</span>
           </div>
-          <pre className="m-0 overflow-auto p-4 text-[0.82rem] leading-relaxed text-[#cbd5e1]">
+          <pre className="m-0 overflow-auto p-3 text-[0.75rem] leading-relaxed text-[#cbd5e1] sm:p-4 sm:text-[0.82rem]">
             <code style={{ background: 'transparent', padding: 0, borderRadius: 0 }}>
               {highlightSource(source)}
             </code>

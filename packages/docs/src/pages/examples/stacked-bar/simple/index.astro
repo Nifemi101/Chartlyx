@@ -61,7 +61,7 @@ export default function StackedBarChartExample() {
 <ExamplesLayout title={title}>
   <ExampleShell
     title="Stacked Bar Chart"
-    description="Quarterly sales stacked by product category. The critical piece is <code>yDomain=[0, stackSum(data, keys)]</code> — without it, the top of the stack would clip since the auto-domain covers only the largest single key."
+    description="Quarterly sales stacked by product category. The critical piece is <code>yDomain=[0, stackSum(data, keys)]</code>. Without it, the top of the stack would clip since the auto-domain covers only the largest single key."
     sourceCode={sourceCode}
   >
     <StackedBarChart client:load slot="chart" />

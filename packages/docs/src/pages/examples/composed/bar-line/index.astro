@@ -61,7 +61,7 @@ export default function BarLineComposedChart() {
 <ExamplesLayout title={title}>
   <ExampleShell
     title="Bar + Line Composed Chart"
-    description="Monthly revenue as bars with a running average line overlay. Both series share the same data and y-scale — the line uses the per-shape <code>y</code> accessor override to plot <code>runningAvg</code> instead of the container's default <code>yKey</code>."
+    description="Monthly revenue as bars with a running average line overlay. Both series share the same data and y-scale; the line uses the per-shape <code>y</code> accessor override to plot <code>runningAvg</code> instead of the container's default <code>yKey</code>."
     sourceCode={sourceCode}
   >
     <BarLineComposedChart client:load slot="chart" />
